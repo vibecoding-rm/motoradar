@@ -1,0 +1,64 @@
+# Ejemplo generico. Crear config.yaml con: python -m motoradar init
+# El presupuesto es la regla principal: papeles y margen NO filtran.
+budget: 1000
+
+filters:
+  queries: ["moto", "sucata moto", "moto pecas", "moto projeto", "cg", "biz"]
+  max_price: 1000  # run/watch usan budget como limite autoritativo
+  min_price: 0
+  allow_no_price: true
+  cities: ["jaguarao", "arroio grande", "herval", "pedras altas", "rio grande"]
+  include_keywords: []
+  exclude_keywords: ["alugo", "roubada", "furtada"]
+
+monitoring:
+  enrich_details: true
+  alert_unconfirmed: true  # aviso separado: PRECIO POR CONFIRMAR
+
+sources:
+  olx:
+    enabled: true
+    state_path: "estado-rs/regioes-de-pelotas-rio-grande-e-bage"
+    pages: 6
+
+  facebook:
+    enabled: false  # configurar perfil propio mediante login antes de activar
+    headless: true
+    marketplace: true
+    radius_km: 40
+    scroll_rounds: 5
+    scroll_pause: 2.2
+    group_queries: ["moto", "vendo moto"]
+    groups: []  # completar solo en config.yaml local
+    group_cities: {}  # id del grupo -> lista de ciudades; ubicacion aproximada
+
+  mercadolivre:
+    enabled: false  # OAuth/acceso pendientes de verificar
+    client_id: ""
+    client_secret: ""
+    state_id: "TUxCUFJTZTM4ZA"
+    limit: 50
+    sites: ["MLB", "MLU"]
+
+fx:
+  base: "BRL"
+  offline: false
+  rates: {}  # tasas por USD, por ejemplo USD: 1.0 y tasas BRL/UYU propias
+
+# Opcional para deals. Nunca exige margen positivo para enviar alertas.
+economics:
+  repair_runner: 300
+  repair_project: 1200
+  repair_parts: 2500
+  resale_factor: 0.85
+  no_docs_resale_factor: 1.0
+  min_margin: 0
+  min_samples: 3
+  min_real_price: 1500
+
+telegram:
+  token: ""  # TELEGRAM_BOT_TOKEN tiene precedencia
+  chat_id: ""  # TELEGRAM_CHAT_ID tiene precedencia
+
+db_path: "data/listings.sqlite3"
+csv_path: "data/hits.csv"

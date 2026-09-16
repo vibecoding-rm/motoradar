@@ -1,0 +1,9 @@
+requests>=2.31
+PyYAML>=6.0
+
+# OLX filtra por fingerprint TLS: sin esto es 403 casi seguro.
+curl_cffi>=0.7
+
+# Facebook. patchright es el fork stealth de playwright (playwright vanilla
+# lo detectan). Tras instalar: patchright install chromium
+patchright>=1.47
