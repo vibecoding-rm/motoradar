@@ -31,9 +31,13 @@ precisión de clasificación o funcionamiento continuo en producción.
       Lectura real acotada del 17/09; grupos migrados a feed cronológico el 18/09,
       pendiente de una pasada real que mida cobertura y frescura del feed.
 - [ ] Revisar OAuth y permisos de Mercado Livre; corregir autenticación/paginación.
-- [~] Capturar fixtures sanitizados representativos de cada fuente.
-      Facebook hecho (`tests/fixtures/`); faltan OLX y Mercado Livre.
-- [ ] Ensayar recuperación tras caída/reinicio usando una base de prueba.
+- [x] Capturar fixtures sanitizados representativos de cada fuente.
+      Facebook (`tests/fixtures/facebook_*.json`), OLX (`tests/fixtures/olx_search_cards.html`)
+      y Mercado Livre (`tests/fixtures/mercadolivre_search.json`) integrados en `tests/test_p0_roadmap.py`.
+- [x] Ensayar recuperación tras caída/reinicio usando una base de prueba.
+      Verificado en `tests/test_p0_roadmap.py`: no duplicación de entrega,
+      reanudación de pendientes, rollback de transacciones interrumpidas e
+      integridad SQLite intacta tras desconexión abrupta.
 - [x] Estado de fallo distinguible de cero resultados en Facebook: DOM no
       reconocido (incluido un feed presente con cero posts), sesión caída y
       silencio sostenido **por superficie** avisan en vez de pasar por una
@@ -51,13 +55,12 @@ con su alcance declarado, no una casilla cerrada.
 
 ## P0 — Cobertura real de los grupos, 1–2 días
 
-- [ ] `POST_JS` extrae 2-5 posts de cada 20 hijos materializados (medido el
-      18/09/2026 en los 8 grupos). El techo de cobertura ya no es el scroll sino
-      el extractor: probablemente los hijos del feed incluyen envoltorios,
-      patrocinados y separadores, o el post vive en `[role="article"]` y no en el
-      hijo directo. Hay una señal que lo denuncia por corrida; el arreglo exige
-      capturar el `innerHTML` real de un hijo de feed y guardarlo como fixture,
-      porque ninguna prueba offline puede adivinar la estructura.
+- [x] `POST_JS` optimizado: detección de `[role="article"]` (evitando separadores y envoltorios),
+      fallback transparente a `feed.children`, extracción de IDs estables desde enlaces de permalink
+      (`posts/`, `permalink/`, `multi_permalinks`, `story_fbid`), e inclusión de `span[dir="auto"]`
+      y bloques de vista previa de mensajes.
+- [ ] Validación con pasada real en vivo sobre los 8 grupos para medir la tasa de extracción
+      efectiva de posts contra el DOM en producción.
 
 Aceptación: sobre una fixture del DOM real, la extracción supera el 60% de los
 hijos materializados, y la señal de extracción baja deja de disparar en una

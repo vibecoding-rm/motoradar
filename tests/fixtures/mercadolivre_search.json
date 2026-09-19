@@ -1,0 +1,115 @@
+{
+  "_nota": [
+    "Fixture sanitizada representativa de la API oficial de Mercado Libre /sites/{site}/search",
+    "MLB (Brasil) y MLU (Uruguay), incluyendo metadatos de direccion, estado, fecha y paginacion."
+  ],
+  "MLB": {
+    "site_id": "MLB",
+    "query": "moto",
+    "paging": {
+      "total": 3,
+      "primary_results": 3,
+      "offset": 0,
+      "limit": 50
+    },
+    "results": [
+      {
+        "id": "1456789001",
+        "title": "Honda CG 125 Fan 2008 Sucata Para Peças",
+        "price": 850.0,
+        "currency_id": "BRL",
+        "permalink": "https://produto.mercadolivre.com.br/MLB-1456789001-honda-cg-125-fan-sucata",
+        "thumbnail": "https://http2.mlstatic.com/D_1456789001_O.jpg",
+        "condition": "used",
+        "start_time": "2026-09-18T12:00:00.000Z",
+        "stop_time": "2026-11-18T12:00:00.000Z",
+        "address": {
+          "state_id": "TUxCUFJTZTM4ZA",
+          "state_name": "Rio Grande do Sul",
+          "city_id": "TUxCQ0pBRzcwNGI",
+          "city_name": "Jaguarão"
+        }
+      },
+      {
+        "id": "1456789002",
+        "title": "Yamaha YBR 125 ED Pelotas",
+        "price": 950.0,
+        "currency_id": "BRL",
+        "permalink": "https://produto.mercadolivre.com.br/MLB-1456789002-yamaha-ybr-125-ed",
+        "thumbnail": "https://http2.mlstatic.com/D_1456789002_O.jpg",
+        "condition": "used",
+        "start_time": "2026-09-18T15:30:00.000Z",
+        "stop_time": "2026-11-18T15:30:00.000Z",
+        "address": {
+          "state_id": "TUxCUFJTZTM4ZA",
+          "state_name": "Rio Grande do Sul",
+          "city_id": "TUxCQ1BFTDAxMGE",
+          "city_name": "Pelotas"
+        }
+      },
+      {
+        "id": "1456789003",
+        "title": "Capacete Moto Pro Tork Stealth",
+        "price": 200.0,
+        "currency_id": "BRL",
+        "permalink": "https://produto.mercadolivre.com.br/MLB-1456789003-capacete-moto-pro-tork",
+        "thumbnail": "https://http2.mlstatic.com/D_1456789003_O.jpg",
+        "condition": "new",
+        "start_time": "2026-09-19T08:15:00.000Z",
+        "stop_time": "2026-11-19T08:15:00.000Z",
+        "address": {
+          "state_id": "TUxCUFJTZTM4ZA",
+          "state_name": "Rio Grande do Sul",
+          "city_id": "TUxCQ0pBRzcwNGI",
+          "city_name": "Jaguarão"
+        }
+      }
+    ]
+  },
+  "MLU": {
+    "site_id": "MLU",
+    "query": "moto",
+    "paging": {
+      "total": 2,
+      "primary_results": 2,
+      "offset": 0,
+      "limit": 50
+    },
+    "results": [
+      {
+        "id": "2345678901",
+        "title": "Moto Yumbo C110 Para Reparar",
+        "price": 6500.0,
+        "currency_id": "UYU",
+        "permalink": "https://articulo.mercadolibre.com.uy/MLU-2345678901-moto-yumbo-c110-para-reparar",
+        "thumbnail": "https://http2.mlstatic.com/D_2345678901_O.jpg",
+        "condition": "used",
+        "start_time": "2026-09-18T10:00:00.000Z",
+        "stop_time": "2026-11-18T10:00:00.000Z",
+        "address": {
+          "state_id": "TUxVUENVZTM4ZA",
+          "state_name": "Cerro Largo",
+          "city_id": "TUxVU1JJTzA0Yg",
+          "city_name": "Río Branco"
+        }
+      },
+      {
+        "id": "2345678902",
+        "title": "Moto Baccio Classic 125 Impecable",
+        "price": 42000.0,
+        "currency_id": "UYU",
+        "permalink": "https://articulo.mercadolibre.com.uy/MLU-2345678902-moto-baccio-classic-125",
+        "thumbnail": "https://http2.mlstatic.com/D_2345678902_O.jpg",
+        "condition": "used",
+        "start_time": "2026-09-17T11:00:00.000Z",
+        "stop_time": "2026-11-17T11:00:00.000Z",
+        "address": {
+          "state_id": "TUxVUENVZTM4ZA",
+          "state_name": "Cerro Largo",
+          "city_id": "TUxVU1JJTzA0Yg",
+          "city_name": "Río Branco"
+        }
+      }
+    ]
+  }
+}

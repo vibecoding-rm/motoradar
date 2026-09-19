@@ -45,20 +45,26 @@ POST_JS = r"""
 () => {
   const feed = document.querySelector('[role="feed"]');
   if (!feed) return [];
-  return Array.from(feed.children).map(k => {
-    // El texto del post vive en div[dir="auto"]; innerText del contenedor
-    // devuelve "Facebook" repetido (el alt de los iconos), no sirve.
-    // El cuerpo del post puede venir partido en varios div[dir=auto] (y tras
-    // expandir "Ver mas" aparecen mas). Se devuelven todos: el precio suele
-    // estar en un bloque distinto al del texto largo.
+  let items = Array.from(feed.querySelectorAll('[role="article"]')).filter(art => {
+    const parentArt = art.parentElement ? art.parentElement.closest('[role="article"]') : null;
+    return !parentArt;
+  });
+  if (items.length === 0) {
+    items = Array.from(feed.children);
+  }
+  return items.map(k => {
+    // El texto del post vive en div[dir="auto"], span[dir="auto"], o bloques preview de mensaje.
+    // El cuerpo del post puede venir partido en varios bloques (y tras expandir "Ver mas" aparecen mas).
+    // Se devuelven todos: el precio suele estar en un bloque distinto al del texto largo.
     const vistos = new Set();
-    const blocks = Array.from(k.querySelectorAll('div[dir="auto"]'))
+    const UI_WORDS = new Set(['facebook', 'curtir', 'comentar', 'compartilhar', 'me gusta', 'compartir', 'ver mas', 'ver mais', 'see more', 'ver más']);
+    const blocks = Array.from(k.querySelectorAll('div[dir="auto"], span[dir="auto"], [data-ad-preview="message"], [data-ad-comet-preview="message"]'))
       .map(d => (d.textContent || '').trim())
-      .filter(t => t.length > 8 && !vistos.has(t) && vistos.add(t));
+      .filter(t => t.length >= 4 && !UI_WORDS.has(t.toLowerCase()) && !vistos.has(t) && vistos.add(t));
     blocks.sort((a, b) => b.length - a.length);
     const link = Array.from(k.querySelectorAll('a[href]'))
       .map(a => a.href)
-      .find(h => /\/posts\/|multi_permalinks|permalink/.test(h)) || '';
+      .find(h => /\/posts\/|multi_permalinks|permalink|\/story\.php/.test(h)) || '';
     const ftNode = k.matches('[data-ft]') ? k : k.querySelector('[data-ft]');
     let stableId = '';
     if (ftNode) {
@@ -67,6 +73,11 @@ POST_JS = r"""
         stableId = String(ft.top_level_post_id || ft.mf_story_key || ft.story_fbid || '');
       } catch (_) {}
     }
+    if (!stableId && link) {
+      const linkMatch = link.match(/(?:posts|permalink|multi_permalinks)[/=](\d+)/i) ||
+                        link.match(/story_fbid=(\d+)/i);
+      if (linkMatch) stableId = linkMatch[1];
+    }
     if (!stableId) {
       const nodeId = k.id || '';
       const match = nodeId.match(/(?:post|story)[^0-9]*(\d{5,})/i);
@@ -74,8 +85,7 @@ POST_JS = r"""
     }
     // La fecha del post: el <a> del permalink la lleva como texto ("2 h",
     // "12 de setembro") o en aria-label. Sin esto `posted_at` quedaba vacio y
-    // la frescura que justifica el feed cronologico no se podia medir: si
-    // Facebook ignorase `sorting_setting`, nadie se enteraria.
+    // la frescura que justifica el feed cronologico no se podia medir.
     let dateText = '';
     const fechas = Array.from(k.querySelectorAll('a[href], abbr'));
     for (const a of fechas) {
