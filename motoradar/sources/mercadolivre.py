@@ -13,7 +13,7 @@ import requests
 
 from ..config import Config
 from ..models import Listing, parse_price
-from .base import SourceError
+from .base import BaseSource, SourceError
 
 API = "https://api.mercadolibre.com"
 TOKEN_URL = f"{API}/oauth/token"
@@ -42,7 +42,7 @@ def _app_token(opts: dict) -> str | None:
     return r.json().get("access_token")
 
 
-class MercadoLivreSource:
+class MercadoLivreSource(BaseSource):
     name = "mercadolivre"
 
     def fetch(self, cfg: Config, opts: dict) -> Iterable[Listing]:
@@ -55,6 +55,9 @@ class MercadoLivreSource:
         state = opts.get("state_id", "TUxCUFJTZTM4ZA")  # Rio Grande do Sul
         sites = opts.get("sites") or ["MLB"]
 
+        self.reset()
+        for site in sites:
+            self.expected_origins.append(f"{self.name}/{site}")
         for site in sites:
             yield from self._search(site, headers, limit, state, cfg)
 
@@ -76,9 +79,25 @@ class MercadoLivreSource:
                     "en config.yaml (o MELI_CLIENT_ID / MELI_CLIENT_SECRET)."
                 )
             if r.status_code != 200:
-                raise SourceError(f"MELI search {r.status_code}: {r.text[:200]}")
+                # Un no-200 en UNA consulta no puede cancelar las demas ni el
+                # otro sitio: OLX ya saltea la pagina y sigue.
+                self.note_failed_page(f"MELI {site}/{query} HTTP {r.status_code}")
+                continue
 
-            for item in r.json().get("results", []):
+            cuerpo = r.json() if isinstance(r.json(), dict) else {}
+            resultados = cuerpo.get("results")
+            # Cero resultados exige evidencia: `paging.total == 0` es la prueba
+            # de que el sitio no tiene nada. Sin `paging`, la API cambio y esto
+            # NO es una tarde tranquila. Antes devolvia "ok, 0 observados", o
+            # sea "hoy no hay motos baratas", ante cualquier cambio de contrato.
+            paging = cuerpo.get("paging")
+            self.require_empty_evidence(
+                len(resultados or []),
+                isinstance(paging, dict) and paging.get("total") == 0,
+                f"MELI {site}/{query}",
+                f"claves={sorted(cuerpo)[:6]}")
+
+            for item in (resultados or []):
                 addr = item.get("address") or {}
                 city = addr.get("city_name") or ""
                 yield Listing(
@@ -90,6 +109,12 @@ class MercadoLivreSource:
                     currency=item.get("currency_id") or currency,
                     location=", ".join(x for x in [city, addr.get("state_name", "")] if x),
                     image=item.get("thumbnail", ""),
-                    posted_at=item.get("stop_time", ""),
-                    raw={"condition": item.get("condition"), "city": city},
+                    # start_time es el alta; stop_time es el VENCIMIENTO del
+                    # anuncio, que no dice nada sobre lo nuevo que es.
+                    posted_at=item.get("start_time") or "",
+                    # `condition` de la API usa otro vocabulario ("new"/"used")
+                    # que el de appraise ("runner"/"project"/"parts"), y pipeline
+                    # escribe esa misma clave: se guarda aparte para no pisarse.
+                    raw={"api_condition": item.get("condition"), "city": city,
+                         "expires_at": item.get("stop_time") or ""},
                 )

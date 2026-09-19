@@ -49,10 +49,6 @@ class Reference:
     low: float
     high: float
 
-    @property
-    def solid(self) -> bool:
-        return self.n >= 3
-
 
 @dataclass
 class Deal:
@@ -62,12 +58,14 @@ class Deal:
     repair: float
     margin: float | None
     warnings: list[str]
+    min_samples: int = 3
 
     @property
     def confidence(self) -> str:
         if self.reference is None:
             return "sin referencia"
-        return "buena" if self.reference.solid else f"floja (n={self.reference.n})"
+        return ("buena" if self.reference.n >= self.min_samples
+                else f"floja (n={self.reference.n}, minimo={self.min_samples})")
 
 
 def build_references(listings: list[Listing],
@@ -111,7 +109,8 @@ def evaluate(listing: Listing, refs: dict[str, Reference], econ: Economics) -> D
     if a.kind != "moto":
         return Deal(listing=listing, appraisal=a, reference=ref,
                     repair=0.0, margin=None,
-                    warnings=[f"no es una moto entera ({a.kind})"])
+                    warnings=[f"no es una moto entera ({a.kind})"],
+                    min_samples=econ.min_samples)
 
     # Guarda contra repuestos que nombran el modelo ("Escape Inox CBR 600F").
     # SOLO en la categoria de repuestos de OLX, que es de donde salian.
@@ -128,7 +127,8 @@ def evaluate(listing: Listing, refs: dict[str, Reference], econ: Economics) -> D
         return Deal(listing=listing, appraisal=a, reference=ref,
                     repair=0.0, margin=None,
                     warnings=["precio demasiado bajo para una moto andando: "
-                              "es casi seguro un repuesto"])
+                              "es casi seguro un repuesto"],
+                    min_samples=econ.min_samples)
     repair = econ.repair_cost(a.condition)
 
     warnings: list[str] = []
@@ -140,8 +140,8 @@ def evaluate(listing: Listing, refs: dict[str, Reference], econ: Economics) -> D
         warnings.append("PROCEDENCIA DUDOSA: no la toques")
     if a.year is None:
         warnings.append("sin año en el título")
-    if ref and not ref.solid:
-        warnings.append(f"referencia con pocas muestras (n={ref.n})")
+    if ref and ref.n < econ.min_samples:
+        warnings.append(f"referencia con pocas muestras (n={ref.n}, minimo={econ.min_samples})")
 
     margin = None
     if ref and ref.n >= econ.min_samples and listing.price is not None and not a.bait_price:
@@ -151,7 +151,8 @@ def evaluate(listing: Listing, refs: dict[str, Reference], econ: Economics) -> D
         margin = (ref.median * factor) - listing.price - repair
 
     return Deal(listing=listing, appraisal=a, reference=ref,
-                repair=repair, margin=margin, warnings=warnings)
+                repair=repair, margin=margin, warnings=warnings,
+                min_samples=econ.min_samples)
 
 
 def assembly_clusters(deals: list[Deal], min_units: int = 2) -> dict[str, list[Deal]]:

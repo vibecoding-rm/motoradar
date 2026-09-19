@@ -26,12 +26,14 @@ configuración existente. El ejemplo es genérico: solo OLX activo.
 Para vigilar con el entorno activado y Telegram configurado:
 
 ```powershell
-python -m motoradar watch --source olx --budget 1000 --interval 30
+python -m motoradar watch --source olx --budget 1000 --interval 15
 ```
 
 watch busca, clasifica, lee detalles y entrega eventos nuevos o bajadas de precio.
 Las entregas fallidas quedan persistidas para reintentar. Ctrl+C detiene el bucle.
-La pausa de 30 minutos se suma a la duración de cada búsqueda.
+La pausa de 15 minutos se suma a la duración de cada búsqueda. Si una fuente
+pierde la sesión, watch la pausa y avisa en lugar de reintentar contra el mismo
+checkpoint.
 
 ## Comandos
 
@@ -54,12 +56,16 @@ si se selecciona Facebook: para prueba acotada usar --source olx.
 
 | Componente | Evidencia |
 |---|---|
-| Dominio y persistencia | 31 pruebas locales aprobadas |
+| Dominio y persistencia | 146 pruebas offline locales aprobadas; circuito tarjeta→detalle→selección→dos destinatarios con mocks, y corpus de 24 cuerpos de post de grupo |
 | OLX | Lectura real acotada: dos anuncios parseados; ninguno elegible en la zona probada |
-| Telegram | Entrega/fallos probados con mocks; configuración y envío real pendientes |
-| Facebook | Adaptador existente; validación de sesión y cobertura pendientes |
+| Telegram | Configurado con dos destinatarios y **entregas reales confirmadas** el 18/09; fallos y reintentos probados con mocks |
+| Facebook | Lectura real acotada el 17/09 y el 18/09; grupos por feed cronológico, tarjetas y posts fijados con fixtures; cobertura completa no demostrada |
 | Mercado Livre | Adaptador existente; OAuth/acceso y paginación pendientes |
 | CI | Workflow Windows/Linux preparado; sin ejecución remota comprobada |
+
+Cero resultados solo se informa como pasada normal cuando la página trae su
+cartel de vacío. Si el HTML deja de reconocerse, la corrida queda en `error` y
+llega un aviso de salud: un radar apagado en silencio es peor que ninguno.
 
 El radar no garantiza precio confirmado por el vendedor, disponibilidad,
 condición ni cobertura completa. No se inició vigilancia permanente al preparar

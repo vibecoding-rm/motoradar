@@ -10,6 +10,14 @@ grupos.json
 .env.*
 !.env.example
 config.local.yaml
+config.*.yaml
+!config.example.yaml
+*.csv
+!tests/**/*.csv
+# Evidencia cruda de auditorias: trazas y volcados reales. Los informes .md
+# (sanitizados) si se versionan; esto no.
+docs/auditorias/evidencia_*.json
+docs/auditorias/repro_*.py
 *.sqlite
 *.sqlite3
 *.db
@@ -38,3 +46,7 @@ htmlcov/
 *.log
 .DS_Store
 Thumbs.db
+
+# Tareas y previews temporales de agentes
+.agents/teamwork_preview_*/
+.agents/sentinel/

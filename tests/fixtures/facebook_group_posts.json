@@ -1,0 +1,121 @@
+{
+  "_nota": [
+    "Forma EXACTA de lo que devuelve POST_JS desde el navegador, sanitizada:",
+    "grupo e ids inventados, textos reescritos, sin nombres ni telefonos.",
+    "En los grupos el precio va escrito a mano dentro del post y el permalink",
+    "no siempre esta renderizado: los dos casos deciden si la alerta sirve.",
+    "El grupo '999' no esta en group_cities: zona sin verificar."
+  ],
+  "grupo": "999",
+  "casos": [
+    {
+      "nombre": "post completo: id estable y permalink propio",
+      "post": {
+        "id": "900001",
+        "text": "Vendo moto CG 125 andando, valor 900 reais",
+        "blocks": ["Vendo moto CG 125 andando, valor 900 reais"],
+        "href": "https://www.facebook.com/groups/999/posts/900001/",
+        "img": "https://scontent.test/p1.jpg"
+      },
+      "espera": {
+        "external_id": "g999-900001",
+        "price": 900.0,
+        "currency": "BRL",
+        "url": "https://www.facebook.com/groups/999/posts/900001/",
+        "url_confidence": "permalink del post",
+        "identity_confidence": "estable"
+      }
+    },
+    {
+      "nombre": "precio en otro bloque y sin permalink: se reconstruye del id",
+      "post": {
+        "id": "900002",
+        "text": "Vendo essa 125 andando ta bonita so pra rodar",
+        "blocks": ["Vendo essa 125 andando ta bonita so pra rodar", "800 reais"],
+        "href": "",
+        "img": ""
+      },
+      "espera": {
+        "external_id": "g999-900002",
+        "price": 800.0,
+        "currency": "BRL",
+        "url": "https://www.facebook.com/groups/999/posts/900002/",
+        "url_confidence": "permalink reconstruido desde el id del post",
+        "identity_confidence": "estable"
+      }
+    },
+    {
+      "nombre": "sin id ni permalink: identidad por hash y enlace al grupo",
+      "post": {
+        "id": "",
+        "text": "Moto pra retirada de pecas, aceito troca",
+        "blocks": ["Moto pra retirada de pecas, aceito troca"],
+        "href": "",
+        "img": ""
+      },
+      "espera": {
+        "price": null,
+        "currency": "BRL",
+        "url": "https://www.facebook.com/groups/999",
+        "url_confidence": "sin permalink: enlace al grupo, buscar el aviso a mano",
+        "identity_confidence": "inestable: hash del texto; una edicion cambia la identidad"
+      }
+    },
+    {
+      "nombre": "frontera: pesos uruguayos, no se dan por reales",
+      "post": {
+        "id": "900004",
+        "text": "Vendo scooter $U 15.000 papeles al dia",
+        "blocks": ["Vendo scooter $U 15.000 papeles al dia"],
+        "href": "",
+        "img": ""
+      },
+      "espera": {
+        "external_id": "g999-900004",
+        "price": 15000.0,
+        "currency": "UYU",
+        "url": "https://www.facebook.com/groups/999/posts/900004/",
+        "url_confidence": "permalink reconstruido desde el id del post",
+        "identity_confidence": "estable"
+      }
+    },
+    {
+      "nombre": "texto con '+' en vez de espacios",
+      "post": {
+        "id": "900005",
+        "text": "Vendo+moto+pra+retirada+de+pecas+500+reais",
+        "blocks": ["Vendo+moto+pra+retirada+de+pecas+500+reais"],
+        "href": "",
+        "img": ""
+      },
+      "espera": {
+        "external_id": "g999-900005",
+        "price": 500.0,
+        "currency": "BRL",
+        "url": "https://www.facebook.com/groups/999/posts/900005/",
+        "url_confidence": "permalink reconstruido desde el id del post",
+        "identity_confidence": "estable",
+        "title": "Vendo moto pra retirada de pecas 500 reais"
+      }
+    },
+    {
+      "nombre": "permalink en el enlace; numero suelto NO se toma como precio",
+      "_porque": "700 sin moneda ni etiqueta puede ser cilindrada o km: queda PRECIO POR CONFIRMAR",
+      "post": {
+        "id": "",
+        "text": "Passo moto projeto, motor fundido, 700",
+        "blocks": ["Passo moto projeto, motor fundido, 700"],
+        "href": "https://www.facebook.com/groups/999/permalink/900006/",
+        "img": ""
+      },
+      "espera": {
+        "external_id": "g999-900006",
+        "price": null,
+        "currency": "BRL",
+        "url": "https://www.facebook.com/groups/999/permalink/900006/",
+        "url_confidence": "permalink del post",
+        "identity_confidence": "estable"
+      }
+    }
+  ]
+}

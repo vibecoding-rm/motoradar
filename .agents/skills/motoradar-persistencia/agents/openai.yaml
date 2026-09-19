@@ -1,0 +1,5 @@
+interface:
+  display_name: "Persistencia y recuperación"
+  short_description: "Critica transacciones, eventos y recuperación SQLite"
+  default_prompt: "Usa $motoradar-persistencia para auditar esta área de Motoradar con evidencia y propuestas concretas."
+

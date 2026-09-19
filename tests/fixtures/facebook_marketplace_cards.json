@@ -1,0 +1,125 @@
+{
+  "_nota": [
+    "Forma EXACTA de lo que devuelve ITEM_JS desde el navegador, sanitizada:",
+    "ids inventados, sin datos de vendedores reales. El JS no se puede probar",
+    "sin Chromium, pero card_to_listing si, y ahi vive la decision de si ves",
+    "una oferta o no. Cuando Facebook cambie el orden de las lineas de la",
+    "tarjeta, se agrega el caso nuevo aca y la regresion queda fijada.",
+    "Casos tomados de corridas reales de Jaguarao (2026-09-16/17)."
+  ],
+  "casos": [
+    {
+      "nombre": "tarjeta normal: precio, titulo, ubicacion",
+      "card": {
+        "href": "https://www.facebook.com/marketplace/item/1000000000000001/",
+        "text": "R$1.800\nMoto trilha\nArroio Grande, RS",
+        "img": "https://scontent.test/1.jpg"
+      },
+      "espera": {
+        "external_id": "1000000000000001",
+        "title": "Moto trilha",
+        "price": 1800.0,
+        "currency": "BRL",
+        "location": "Arroio Grande, RS",
+        "image": "https://scontent.test/1.jpg"
+      }
+    },
+    {
+      "nombre": "rebaja: dos precios, gana el vigente (primera linea)",
+      "card": {
+        "href": "https://www.facebook.com/marketplace/item/1000000000000002/",
+        "text": "R$3.000\nR$3.700\n2014 Yamaha outro\nJaguarão, RS",
+        "img": ""
+      },
+      "espera": {
+        "external_id": "1000000000000002",
+        "title": "2014 Yamaha outro",
+        "price": 3000.0,
+        "currency": "BRL",
+        "location": "Jaguarão, RS",
+        "image": ""
+      }
+    },
+    {
+      "nombre": "titulo corto: la ultima linea es ciudad, no titulo",
+      "card": {
+        "href": "https://www.facebook.com/marketplace/item/1000000000000003/",
+        "text": "R$450\nBiz\nJaguarão, RS",
+        "img": ""
+      },
+      "espera": {
+        "external_id": "1000000000000003",
+        "title": "Biz",
+        "price": 450.0,
+        "currency": "BRL",
+        "location": "Jaguarão, RS",
+        "image": ""
+      }
+    },
+    {
+      "nombre": "carnada/truncado: R$6 por una YBR de R$6.500 (lo corrige el detalle)",
+      "card": {
+        "href": "https://www.facebook.com/marketplace/item/1000000000000004/",
+        "text": "R$6\nYBR 125\nJaguarão, RS",
+        "img": ""
+      },
+      "espera": {
+        "external_id": "1000000000000004",
+        "title": "YBR 125",
+        "price": 6.0,
+        "currency": "BRL",
+        "location": "Jaguarão, RS",
+        "image": ""
+      }
+    },
+    {
+      "nombre": "frontera: pesos uruguayos, no reales",
+      "card": {
+        "href": "https://www.facebook.com/marketplace/item/1000000000000005/",
+        "text": "$U 15.000\nScooter Yumbo\nRio Branco",
+        "img": ""
+      },
+      "espera": {
+        "external_id": "1000000000000005",
+        "title": "Scooter Yumbo",
+        "price": 15000.0,
+        "currency": "UYU",
+        "location": "Rio Branco",
+        "image": ""
+      }
+    },
+    {
+      "nombre": "\"Gratis\" es un hueco, no un precio de cero",
+      "_porque": "Facebook muestra Gratis y R$ 0 para un aviso publicado sin precio; afirmarlo como importe presentaba la moto con precio cero y la metia al presupuesto",
+      "card": {
+        "href": "https://www.facebook.com/marketplace/item/1000000000000006/",
+        "text": "Gratis\nSucata CG",
+        "img": ""
+      },
+      "espera": {
+        "external_id": "1000000000000006",
+        "title": "Sucata CG",
+        "price": null,
+        "currency": "BRL",
+        "location": "",
+        "image": ""
+      }
+    },
+    {
+      "nombre": "sin precio en la tarjeta: queda por confirmar, no se descarta",
+      "card": {
+        "href": "https://www.facebook.com/marketplace/item/1000000000000007/",
+        "text": "Moto CG 125 para retirar peças\nJaguarão, RS",
+        "img": ""
+      },
+      "espera": {
+        "external_id": "1000000000000007",
+        "title": "Moto CG 125 para retirar peças",
+        "price": null,
+        "currency": "BRL",
+        "location": "Jaguarão, RS",
+        "image": ""
+      }
+    }
+  ]
+}

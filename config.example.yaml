@@ -7,13 +7,19 @@ filters:
   max_price: 1000  # run/watch usan budget como limite autoritativo
   min_price: 0
   allow_no_price: true
-  cities: ["jaguarao", "arroio grande", "herval", "pedras altas", "rio grande"]
+  cities: ["jaguarao", "rio branco"]
   include_keywords: []
   exclude_keywords: ["alugo", "roubada", "furtada"]
 
 monitoring:
   enrich_details: true
   alert_unconfirmed: true  # aviso separado: PRECIO POR CONFIRMAR
+  health_zero_runs: 4      # pasadas seguidas sin observar nada antes de avisar
+  session_pause_cycles: 8  # pasadas que watch pausa una fuente sin sesion
+  # El feed de grupos guarda el texto de posts de terceros que no venden nada.
+  # Pasado este plazo se borran observaciones, anuncios sin entrega y corridas.
+  # 0 = no borrar nunca (la base crece como un archivo de datos personales).
+  retention_days: 90
 
 sources:
   olx:
@@ -25,12 +31,33 @@ sources:
     enabled: false  # configurar perfil propio mediante login antes de activar
     headless: true
     marketplace: true
+    marketplace_queries: ["moto", "biz", "cg"]
+    marketplace_every_cycles: 3  # en watch: Marketplace 1 de cada N pasadas
     radius_km: 40
-    scroll_rounds: 5
-    scroll_pause: 2.2
-    group_queries: ["moto", "vendo moto"]
+    scroll_rounds: 2
+    scroll_pause: 1.2        # ritmo de Marketplace
+    group_scroll_pause: 0.6  # ritmo de los grupos (son dos diales distintos)
+    navigation_timeout_ms: 30000
+    # feed: lee el grupo en orden cronologico y clasifica en local (recomendado).
+    # El buscador de Facebook ordena por relevancia y solo devuelve lo que
+    # contiene la palabra: "vendo essa 125 andando, 800" no dice "moto".
+    # search: solo buscador. both: feed y despues buscador (mas lento).
+    group_mode: feed
+    group_queries: ["moto"]  # solo se usan en group_mode search/both
+    group_items: 20
+    group_budget_s: 25
+    group_settle_s: 1.5
+    # Si la mediana de antiguedad de los posts leidos supera esto,
+    # Facebook no esta aplicando el orden cronologico y se avisa.
+    group_freshness_days: 7
+    detail_limit: 12
+    detail_timeout_ms: 15000
+    detail_pause: 0.5
     groups: []  # completar solo en config.yaml local
-    group_cities: {}  # id del grupo -> lista de ciudades; ubicacion aproximada
+    # id del grupo -> ciudades. Un grupo SIN entrada aca queda marcado como
+    # zona sin verificar: sus avisos pasan igual (no se pierden motos) pero
+    # el filtro de ciudad no los respalda y la alerta lo dice.
+    group_cities: {}
 
   mercadolivre:
     enabled: false  # OAuth/acceso pendientes de verificar
@@ -57,8 +84,14 @@ economics:
   min_real_price: 1500
 
 telegram:
-  token: ""  # TELEGRAM_BOT_TOKEN tiene precedencia
-  chat_id: ""  # TELEGRAM_CHAT_ID tiene precedencia
+  # El token NO va aca: cualquier busqueda de texto en el proyecto lo expone.
+  # Ponelo en ~/.motoradar/telegram_token (una linea) o en TELEGRAM_BOT_TOKEN.
+  # Un token escrito en este archivo se rechaza al arrancar.
+  token: ""
+  # Un id suelto, o una lista para varios destinatarios. Cada uno tiene su
+  # propia cola de entregas: un 429 o un fallo de red de uno no retrasa al otro.
+  # Por entorno, TELEGRAM_CHAT_ID admite ids separados por coma y tiene precedencia.
+  chat_id: ""
 
 db_path: "data/listings.sqlite3"
 csv_path: "data/hits.csv"

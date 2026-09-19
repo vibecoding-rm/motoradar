@@ -24,10 +24,26 @@ FALLBACK = {"USD": 1.0, "BRL": 5.15, "UYU": 40.2}
 
 # Como escriben los precios de cada lado del puente.
 SYMBOLS = [
-    (re.compile(r"U\$S|USD|u\$s|US\$"), "USD"),
-    (re.compile(r"\$U|UYU|\$\s*U\b"), "UYU"),
-    (re.compile(r"R\$|BRL"), "BRL"),
+    (re.compile(r"U\$S|USD|u\$s|US\$", re.IGNORECASE), "USD"),
+    (re.compile(r"R\$|BRL", re.IGNORECASE), "BRL"),
+    (re.compile(r"\$U|UYU|\$\s*U\b|(?<![A-Za-z])\$(?![A-Za-z])|\bpesos?\b|\bpezos\b", re.IGNORECASE), "UYU"),
 ]
+
+
+def _validated_rates(data) -> dict[str, float] | None:
+    if not isinstance(data, dict):
+        return None
+    keep: dict[str, float] = {}
+    for code, value in data.items():
+        if code not in ("USD", "BRL", "UYU"):
+            continue
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return None
+        value = float(value)
+        if not math.isfinite(value) or value <= 0:
+            return None
+        keep[code] = value
+    return keep or None
 
 
 def detect_currency(text: str, default: str = "BRL") -> str:
@@ -47,22 +63,29 @@ class FX:
             if fetched:
                 self.rates.update(fetched)
         if rates:  # lo que pongas en la config manda sobre todo
-            self.rates.update(rates)
+            checked = _validated_rates(rates)
+            if checked is None:
+                raise ValueError("Tasas FX invalidas")
+            self.rates.update(checked)
             self.source = "config"
 
     def _load(self) -> dict[str, float] | None:
         try:
             if CACHE.exists() and time.time() - CACHE.stat().st_mtime < MAX_AGE:
-                self.source = "cache"
-                return json.loads(CACHE.read_text(encoding="utf-8"))
+                cached = _validated_rates(json.loads(CACHE.read_text(encoding="utf-8")))
+                if cached:
+                    self.source = "cache"
+                    return cached
         except (OSError, json.JSONDecodeError):
             pass
         try:
             r = requests.get(API, timeout=15)
             if r.ok:
-                rates = r.json().get("rates", {})
-                keep = {k: float(v) for k, v in rates.items()
-                        if k in ("USD", "BRL", "UYU") and math.isfinite(float(v)) and float(v) > 0}
+                body = r.json()
+                rates = body.get("rates", {}) if isinstance(body, dict) else None
+                keep = _validated_rates(rates)
+                if not keep:
+                    return None
                 CACHE.parent.mkdir(parents=True, exist_ok=True)
                 CACHE.write_text(json.dumps(keep), encoding="utf-8")
                 self.source = "api"

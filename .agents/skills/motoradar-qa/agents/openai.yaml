@@ -1,0 +1,5 @@
+interface:
+  display_name: "QA y regresiones"
+  short_description: "Evalúa evidencia, regresiones y controles de CI"
+  default_prompt: "Usa $motoradar-qa para auditar esta área de Motoradar con evidencia y propuestas concretas."
+

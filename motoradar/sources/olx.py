@@ -24,7 +24,9 @@ nuestro sobre el resultado.
 """
 from __future__ import annotations
 
+import random
 import re
+import time
 from typing import Iterable
 from urllib.parse import urlencode
 
@@ -37,7 +39,7 @@ except ImportError:  # pragma: no cover
 
 from ..config import Config
 from ..models import Listing, parse_price
-from .base import SourceError
+from .base import BaseSource, SourceError
 
 BASE = "https://www.olx.com.br"
 
@@ -53,6 +55,16 @@ TITLE_RE = re.compile(r'class="[^"]*olx-adcard__title[^"]*"[^>]*>(.*?)</h2>', re
 IMG_RE = re.compile(r'<img[^>]*src="(https://img\.olx\.com\.br/[^"]+)"', re.S)
 ID_RE = re.compile(r'-(\d{6,})(?:$|[?#])')
 TAG_RE = re.compile(r"<[^>]+>")
+BLOCK_RE = re.compile(
+    r"verify you are human|captcha|access denied|acesso negado|sou humano|"
+    r"atividade suspeita|challenge-platform",
+    re.IGNORECASE,
+)
+EMPTY_RE = re.compile(
+    r"nenhum an[uú]ncio encontrado|n[aã]o encontramos resultados|"
+    r"sem resultados|data-testid=[\"'][^\"']*(?:empty|no-results)",
+    re.IGNORECASE,
+)
 
 
 def _field(card: str, name: str) -> str:
@@ -67,7 +79,7 @@ def _text(fragment: str) -> str:
     return re.sub(r"\s+", " ", TAG_RE.sub("", fragment)).strip()
 
 
-class OlxSource:
+class OlxSource(BaseSource):
     name = "olx"
 
     def fetch(self, cfg: Config, opts: dict) -> Iterable[Listing]:
@@ -76,7 +88,7 @@ class OlxSource:
         categories = opts.get("categories") or CATEGORIES
         session = http.Session()
         session.headers.update({"Accept-Language": "pt-BR,pt;q=0.9"})
-        self.failed_pages = 0
+        self.reset()
         successful_pages = 0
 
         try:
@@ -88,7 +100,7 @@ class OlxSource:
                             got = list(self._page(session, cfg, category, state,
                                                   query, page, seen))
                         except SourceError as exc:
-                            self.failed_pages += 1
+                            self.note_failed_page(f"OLX pagina {page}")
                             # OLX tira 502/503 sueltos. Perder una pagina es
                             # aceptable; perder la corrida entera no.
                             print(f"   (salteo pagina {page}: {exc})")
@@ -122,7 +134,19 @@ class OlxSource:
                         "el fingerprint TLS de Chrome.")
                 raise SourceError(f"OLX devolvio 403 (anti-bot).{hint}")
             if r.status_code in (429, 502, 503, 504):
-                r = session.get(url, timeout=30, **IMPERSONATE)  # un reintento
+                # Con backoff y jitter, no inmediato: un 429 reintentado en el
+                # mismo milisegundo devuelve 429 otra vez y la pagina se saltea.
+                # Se respeta Retry-After si viene.
+                for espera in (1.0, 3.0, 8.0):
+                    try:
+                        pedido = float(r.headers.get("Retry-After", 0) or 0)
+                    except (TypeError, ValueError):
+                        pedido = 0.0
+                    time.sleep(max(espera, min(pedido, 30.0))
+                               + random.uniform(0, 0.5))
+                    r = session.get(url, timeout=30, **IMPERSONATE)
+                    if r.status_code not in (429, 502, 503, 504):
+                        break
             if r.status_code != 200:
                 raise SourceError(f"OLX {r.status_code} en {url}")
 
@@ -130,9 +154,13 @@ class OlxSource:
             html = r.content.decode("utf-8", "replace")
             cards = CARD_RE.findall(html)
             if not cards:
+                if BLOCK_RE.search(html):
+                    raise SourceError("OLX: pagina bloqueada/desafio anti-bot")
                 if "olx-adcard" in html:
                     raise SourceError("OLX: cambio el markup de las tarjetas")
-                return  # se acabaron las paginas
+                if EMPTY_RE.search(html):
+                    return  # vacio explicitamente reconocido por OLX
+                raise SourceError("OLX: pagina 200 sin estructura de resultados reconocible")
 
             for card in cards:
                 link = LINK_RE.search(card)
