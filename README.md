@@ -171,7 +171,6 @@ motoradar/
 ## 🔒 Privacidad y Seguridad
 
 * **Sin almacenamiento de credenciales en el repositorio**: Tokens, chat IDs, perfiles de sesión y bases de datos reales están estrictamente ignorados por Git.
-* **Sanitización de Informes**: Todas las auditorías públicas en `docs/auditorias/` son completamente anónimas y carecen de datos de vendedores, tokens o identificadores privados.
 
 ---
 

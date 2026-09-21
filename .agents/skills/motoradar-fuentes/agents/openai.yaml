@@ -1,5 +1,0 @@
-interface:
-  display_name: "Fuentes y extracción"
-  short_description: "Revisa parsers, paginación y fallos de proveedores"
-  default_prompt: "Usa $motoradar-fuentes para auditar esta área de Motoradar con evidencia y propuestas concretas."
-

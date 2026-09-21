@@ -2,7 +2,7 @@
 
 ## Sin publicar
 
-Correcciones de la [auditoría del 18/09](docs/auditorias/2026-09-18.md), que
+Correcciones de la auditoría del 18/09, que
 encontró que el radar perdía motos reales en silencio por tres vías distintas.
 
 Lo que perdía compras:
@@ -175,9 +175,9 @@ Facebook: cobertura, frescura y fallo visible (revisión del 18/09/2026).
   (18/09/2026, chat privado). El formato de alerta ahora declara también la
   confianza del enlace cuando no es el permalink del aviso.
 
-Correcciones de las auditorías [inicial](docs/auditorias/2026-09-16-codex.md),
-[segunda pasada](docs/auditorias/2026-09-16-codex-2.md) y su
-[cierre offline](docs/auditorias/2026-09-17-cierre-codex.md):
+Correcciones de las auditorías inicial,
+segunda pasada y su
+cierre offline:
 
 - Las guardas de teléfono y año del parser tenían retrocesos (`\x08`) en vez de `\b`;
   "chamar por 53991234567 valor 900" se leía como R$53.991.234.567.

@@ -1,5 +1,0 @@
-interface:
-  display_name: "Seguridad y datos"
-  short_description: "Revisa secretos, datos externos y límites de confianza"
-  default_prompt: "Usa $motoradar-seguridad para auditar esta área de Motoradar con evidencia y propuestas concretas."
-

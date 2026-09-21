@@ -1,5 +1,0 @@
-interface:
-  display_name: "CLI, entrega y operación"
-  short_description: "Revisa comandos, Telegram, CSV y vigilancia local"
-  default_prompt: "Usa $motoradar-operacion para auditar esta área de Motoradar con evidencia y propuestas concretas."
-

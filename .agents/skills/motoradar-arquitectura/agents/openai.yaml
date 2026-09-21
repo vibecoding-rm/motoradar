@@ -1,5 +1,0 @@
-interface:
-  display_name: "Arquitectura y propuestas"
-  short_description: "Contrasta contratos y propone diseños con coste útil"
-  default_prompt: "Usa $motoradar-arquitectura para auditar esta área de Motoradar con evidencia y propuestas concretas."
-

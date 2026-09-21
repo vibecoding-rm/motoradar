@@ -1,5 +1,0 @@
-interface:
-  display_name: "Dominio y selección"
-  short_description: "Critica precios, clasificación y selección de motos"
-  default_prompt: "Usa $motoradar-dominio para auditar esta área de Motoradar con evidencia y propuestas concretas."
-

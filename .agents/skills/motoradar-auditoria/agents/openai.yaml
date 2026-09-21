@@ -1,5 +1,0 @@
-interface:
-  display_name: "Auditoría crítica de Motoradar"
-  short_description: "Coordina especialistas y QA con evidencia verificable"
-  default_prompt: "Usa $motoradar-auditoria para criticar todo Motoradar, aplicar QA y proponer mejoras justificadas."
-
