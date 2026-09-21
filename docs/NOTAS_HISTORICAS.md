@@ -46,8 +46,6 @@ ciudades; confirmar la ubicación concreta con el vendedor.
 `deals` comparte la selección y añade tasación opcional. Es una vista de consola;
 la persistencia, CSV y Telegram corresponden a `run`/`watch`.
 
-Consulta [investigación, cambios y límites](../INVESTIGACION_Y_MEJORAS.md).
-
 ---
 
 ## Lo primero: Facebook no tiene API para esto

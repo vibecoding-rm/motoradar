@@ -139,6 +139,4 @@ precios corregidos/desconocidos, falsos positivos confirmados, comparables únic
 tiempo observación→entrega, pendientes/antigüedad, tamaño de base y lock waits.
 Usar compras y ventas reales para aprender costes, sin filtrar el radar por rentabilidad.
 
-La revisión inicial completa está en [REVISION_SENIOR.md](../REVISION_SENIOR.md);
-la investigación y primera implementación en
-[INVESTIGACION_Y_MEJORAS.md](../INVESTIGACION_Y_MEJORAS.md).
+
