@@ -472,6 +472,118 @@ def _configure_stdio() -> None:
             stream.reconfigure(encoding="utf-8", errors="replace")
 
 
+def cmd_init(config_path: str) -> int:
+    dest = Path(config_path)
+    if dest.exists():
+        print(f"{dest} ya existe, no lo toco.")
+        return 0
+    shutil.copy(Path(__file__).resolve().parent.parent / "config.example.yaml", dest)
+    print(f"Creado {dest}. Editalo y despues: python -m motoradar run")
+    return 0
+
+
+def cmd_login() -> int:
+    from .sources.facebook import login
+    login()
+    return 0
+
+
+def cmd_status() -> int:
+    from .sources.facebook import session_ready
+    ok = session_ready()
+    print("Facebook:", "sesion activa" if ok
+          else "sin sesion -> corré: python -m motoradar login")
+    return 0 if ok else 1
+
+
+def cmd_doctor(cfg: Config) -> int:
+    """Estado local del radar y sus entregas, sin consultar proveedores.
+
+    Devuelve 1 si hay problemas (entregas abandonadas): antes devolvia 0
+    siempre, asi que no servia para una tarea programada.
+    """
+    problemas: list[str] = []
+    print(f"Presupuesto: {Listing.SYMBOL[cfg.fx.get('base', 'BRL')]} {cfg.budget:,.0f}")
+    print("Fuentes activas:", ", ".join(n for n in REGISTRY if cfg.source_enabled(n)) or "ninguna")
+    destinos = cfg.telegram_destinations()
+    print("Telegram:", f"configurado, {len(destinos)} destinatario(s): "
+          + ", ".join(mask_destination(d) for d in destinos)
+          if cfg.telegram.get("token") and destinos else "sin configurar")
+    print("Papeles y margen: no filtran; estado mecanico: admite proyectos y doadoras")
+    if Path(cfg.db_path).exists():
+        conn = sqlite3.connect(Path(cfg.db_path).resolve().as_uri() + "?mode=ro", uri=True)
+        try:
+            tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            if "deliveries" in tables:
+                print("Entregas pendientes:", conn.execute("SELECT count(*) FROM deliveries WHERE sent_at IS NULL").fetchone()[0])
+                for fila in conn.execute(
+                        """SELECT destination,count(*) FROM deliveries
+                        WHERE sent_at IS NULL GROUP BY destination
+                        ORDER BY destination"""):
+                    print(f"  {mask_destination(fila[0]) if fila[0] else '(sin destinatario)'}: {fila[1]}")
+            if "runs" in tables:
+                last = conn.execute("SELECT finished_at,stats FROM runs ORDER BY id DESC LIMIT 1").fetchone()
+                if last:
+                    print("Ultima corrida:", last[0])
+                    for name, stat in json.loads(last[1]).items():
+                        print(f"  {name}: {format_outcome(stat)}")
+            if "deliveries" in tables:
+                columnas = {r[1] for r in conn.execute("PRAGMA table_info(deliveries)")}
+                if "state" in columnas:
+                    for fila in conn.execute(
+                            """SELECT destination,count(*),max(last_error)
+                            FROM deliveries WHERE state='dead' AND sent_at IS NULL
+                            GROUP BY destination ORDER BY destination"""):
+                        problemas.append(
+                            f"{mask_destination(fila[0])}: {fila[1]} entregas "
+                            f"abandonadas ({fila[2] or 'sin motivo'})")
+                vieja = conn.execute(
+                    """SELECT created_at,attempts,last_error FROM deliveries
+                    WHERE sent_at IS NULL ORDER BY created_at LIMIT 1""").fetchone()
+                if vieja:
+                    print(f"Pendiente mas antiguo: {vieja[0]} "
+                          f"({vieja[1]} intentos, {vieja[2] or 'sin error'})")
+            if "health_notices" in tables:
+                avisos = conn.execute(
+                    "SELECT key,detail FROM health_notices ORDER BY key").fetchall()
+                print("Avisos de salud activos:",
+                      "ninguno" if not avisos else "")
+                for key, detail in avisos:
+                    print(f"  {key} (desde {detail})")
+        finally:
+            conn.close()
+    else:
+        print("Sin historial: todavia no hubo corridas guardadas")
+    if problemas:
+        print("PROBLEMAS:")
+        for problema in problemas:
+            print(f"  {problema}")
+    return 1 if problemas else 0
+
+
+def cmd_retry(cfg: Config) -> int:
+    from .store import Store
+    with exclusive(cfg.db_path):
+        store = Store(cfg.db_path)
+        try:
+            token = str(cfg.telegram.get("token", ""))
+            print("Alertas enviadas:", sum(
+                flush_pending(store, token, destino)
+                for destino in cfg.telegram_destinations()))
+        finally:
+            store.close()
+    return 0
+
+
+def cmd_run(cfg: Config, args: argparse.Namespace, enrichment: bool) -> int:
+    try:
+        run_once(cfg, args.only, dry_run=args.dry_run, enrich_details=enrichment)
+    except SourceError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     _configure_stdio()
     parser = build_parser()
@@ -487,26 +599,13 @@ def main(argv: list[str] | None = None) -> int:
     if getattr(args, "budget", None) is not None and (not math.isfinite(args.budget) or args.budget < 0):
         parser.error("--budget debe ser finito y >= 0")
 
+    # Comandos que no necesitan config cargada.
     if args.cmd == "init":
-        dest = Path(args.config)
-        if dest.exists():
-            print(f"{dest} ya existe, no lo toco.")
-            return 0
-        shutil.copy(Path(__file__).resolve().parent.parent / "config.example.yaml", dest)
-        print(f"Creado {dest}. Editalo y despues: python -m motoradar run")
-        return 0
-
+        return cmd_init(args.config)
     if args.cmd == "login":
-        from .sources.facebook import login
-        login()
-        return 0
-
+        return cmd_login()
     if args.cmd == "status":
-        from .sources.facebook import session_ready
-        ok = session_ready()
-        print("Facebook:", "sesion activa" if ok
-              else "sin sesion -> corré: python -m motoradar login")
-        return 0 if ok else 1
+        return cmd_status()
 
     cfg = Config.load(args.config)
     if getattr(args, "budget", None) is not None:
@@ -514,98 +613,19 @@ def main(argv: list[str] | None = None) -> int:
     enrichment = cfg.monitoring.get("enrich_details", True) and not getattr(args, "no_enrich", False)
 
     if args.cmd == "doctor":
-        # doctor devolvia 0 siempre, asi que no servia para una tarea programada.
-        problemas: list[str] = []
-        print(f"Presupuesto: {Listing.SYMBOL[cfg.fx.get('base', 'BRL')]} {cfg.budget:,.0f}")
-        print("Fuentes activas:", ", ".join(n for n in REGISTRY if cfg.source_enabled(n)) or "ninguna")
-        destinos = cfg.telegram_destinations()
-        print("Telegram:", f"configurado, {len(destinos)} destinatario(s): "
-              + ", ".join(mask_destination(d) for d in destinos)
-              if cfg.telegram.get("token") and destinos else "sin configurar")
-        print("Papeles y margen: no filtran; estado mecanico: admite proyectos y doadoras")
-        if Path(cfg.db_path).exists():
-            conn = sqlite3.connect(Path(cfg.db_path).resolve().as_uri() + "?mode=ro", uri=True)
-            try:
-                tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-                if "deliveries" in tables:
-                    print("Entregas pendientes:", conn.execute("SELECT count(*) FROM deliveries WHERE sent_at IS NULL").fetchone()[0])
-                    for fila in conn.execute(
-                            """SELECT destination,count(*) FROM deliveries
-                            WHERE sent_at IS NULL GROUP BY destination
-                            ORDER BY destination"""):
-                        print(f"  {mask_destination(fila[0]) if fila[0] else '(sin destinatario)'}: {fila[1]}")
-                if "runs" in tables:
-                    last = conn.execute("SELECT finished_at,stats FROM runs ORDER BY id DESC LIMIT 1").fetchone()
-                    if last:
-                        print("Ultima corrida:", last[0])
-                        for name, stat in json.loads(last[1]).items():
-                            print(f"  {name}: {format_outcome(stat)}")
-                if "deliveries" in tables:
-                    columnas = {r[1] for r in conn.execute("PRAGMA table_info(deliveries)")}
-                    if "state" in columnas:
-                        for fila in conn.execute(
-                                """SELECT destination,count(*),max(last_error)
-                                FROM deliveries WHERE state='dead' AND sent_at IS NULL
-                                GROUP BY destination ORDER BY destination"""):
-                            problemas.append(
-                                f"{mask_destination(fila[0])}: {fila[1]} entregas "
-                                f"abandonadas ({fila[2] or 'sin motivo'})")
-                    vieja = conn.execute(
-                        """SELECT created_at,attempts,last_error FROM deliveries
-                        WHERE sent_at IS NULL ORDER BY created_at LIMIT 1""").fetchone()
-                    if vieja:
-                        print(f"Pendiente mas antiguo: {vieja[0]} "
-                              f"({vieja[1]} intentos, {vieja[2] or 'sin error'})")
-                if "health_notices" in tables:
-                    avisos = conn.execute(
-                        "SELECT key,detail FROM health_notices ORDER BY key").fetchall()
-                    print("Avisos de salud activos:",
-                          "ninguno" if not avisos else "")
-                    for key, detail in avisos:
-                        print(f"  {key} (desde {detail})")
-            finally:
-                conn.close()
-        else:
-            print("Sin historial: todavia no hubo corridas guardadas")
-        if problemas:
-            print("PROBLEMAS:")
-            for problema in problemas:
-                print(f"  {problema}")
-        return 1 if problemas else 0
-
+        return cmd_doctor(cfg)
     if args.cmd == "retry":
-        from .store import Store
-        with exclusive(cfg.db_path):
-            store = Store(cfg.db_path)
-            try:
-                token = str(cfg.telegram.get("token", ""))
-                print("Alertas enviadas:", sum(
-                    flush_pending(store, token, destino)
-                    for destino in cfg.telegram_destinations()))
-            finally:
-                store.close()
-        return 0
-
+        return cmd_retry(cfg)
     if args.cmd == "run":
-        try:
-            run_once(cfg, args.only, dry_run=args.dry_run, enrich_details=enrichment)
-        except SourceError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
-        return 0
-
+        return cmd_run(cfg, args, enrichment)
     if args.cmd == "explain":
         return run_explain(cfg, args.limit, args.solo_descartados)
-
     if args.cmd == "deals":
         return run_deals(cfg, args.only, args.top, enrich_details=enrichment)
-
     if args.cmd == "watch":
         return watch_loop(cfg, args.only, enrichment, args.interval)
-
     if args.cmd == "collect":
         return run_collect(cfg, args)
-
     return 0
 
 
