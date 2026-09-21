@@ -47,24 +47,33 @@ POST_JS = r"""
   if (!feed) return [];
   let items = Array.from(feed.querySelectorAll('[role="article"]')).filter(art => {
     const parentArt = art.parentElement ? art.parentElement.closest('[role="article"]') : null;
-    return !parentArt;
+    if (parentArt) return false;
+    const txt = (art.textContent || '').trim();
+    return txt.length >= 15;
   });
   if (items.length === 0) {
-    items = Array.from(feed.children);
+    items = Array.from(feed.children).filter(c => {
+      const txt = (c.textContent || '').trim();
+      return txt.length >= 15;
+    });
   }
   return items.map(k => {
     // El texto del post vive en div[dir="auto"], span[dir="auto"], o bloques preview de mensaje.
     // El cuerpo del post puede venir partido en varios bloques (y tras expandir "Ver mas" aparecen mas).
     // Se devuelven todos: el precio suele estar en un bloque distinto al del texto largo.
     const vistos = new Set();
-    const UI_WORDS = new Set(['facebook', 'curtir', 'comentar', 'compartilhar', 'me gusta', 'compartir', 'ver mas', 'ver mais', 'see more', 'ver más']);
+    const UI_WORDS = new Set(['facebook', 'curtir', 'comentar', 'compartilhar', 'me gusta', 'compartir', 'ver mas', 'ver mais', 'see more', 'ver más', 'ver traducción', 'ver tradução']);
     const blocks = Array.from(k.querySelectorAll('div[dir="auto"], span[dir="auto"], [data-ad-preview="message"], [data-ad-comet-preview="message"]'))
       .map(d => (d.textContent || '').trim())
       .filter(t => t.length >= 4 && !UI_WORDS.has(t.toLowerCase()) && !vistos.has(t) && vistos.add(t));
+    if (blocks.length === 0) {
+      const lines = (k.innerText || '').split('\n').map(l => l.trim()).filter(l => l.length >= 4 && !UI_WORDS.has(l.toLowerCase()) && !vistos.has(l) && vistos.add(l));
+      if (lines.length > 0) blocks.push(...lines);
+    }
     blocks.sort((a, b) => b.length - a.length);
     const link = Array.from(k.querySelectorAll('a[href]'))
       .map(a => a.href)
-      .find(h => /\/posts\/|multi_permalinks|permalink|\/story\.php/.test(h)) || '';
+      .find(h => /\/posts\/|multi_permalinks|permalink|\/story\.php|\/commerce\/listing\//.test(h)) || '';
     const ftNode = k.matches('[data-ft]') ? k : k.querySelector('[data-ft]');
     let stableId = '';
     if (ftNode) {
@@ -74,7 +83,7 @@ POST_JS = r"""
       } catch (_) {}
     }
     if (!stableId && link) {
-      const linkMatch = link.match(/(?:posts|permalink|multi_permalinks)[/=](\d+)/i) ||
+      const linkMatch = link.match(/(?:posts|permalink|multi_permalinks|commerce\/listing)[/=](\d+)/i) ||
                         link.match(/story_fbid=(\d+)/i);
       if (linkMatch) stableId = linkMatch[1];
     }
@@ -248,7 +257,7 @@ def _post_identity(post: dict) -> tuple[str, str]:
     stable = str(post.get("id") or "").strip()
     if not stable:
         href = str(post.get("href") or "")
-        match = re.search(r"/(?:posts|permalink)/(?:[^/?]+/)?(\d{5,})", href)
+        match = re.search(r"/(?:posts|permalink|commerce/listing)/(?:[^/?]+/)?(\d{5,})", href)
         if not match:
             match = re.search(r"[?&](?:story_fbid|fbid)=(\d{5,})", href)
         stable = match.group(1) if match else ""

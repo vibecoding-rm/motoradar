@@ -59,8 +59,10 @@ con su alcance declarado, no una casilla cerrada.
       fallback transparente a `feed.children`, extracción de IDs estables desde enlaces de permalink
       (`posts/`, `permalink/`, `multi_permalinks`, `story_fbid`), e inclusión de `span[dir="auto"]`
       y bloques de vista previa de mensajes.
-- [ ] Validación con pasada real en vivo sobre los 8 grupos para medir la tasa de extracción
-      efectiva de posts contra el DOM en producción.
+- [x] Validación con pasada real en vivo sobre los 8 grupos para medir la tasa de extracción
+      efectiva de posts contra el DOM en producción: filtrado de skeletons vacíos en `role="article"`,
+      soporte a permalinks `/commerce/listing/`, extracción exitosa en los 8 grupos con 0 DOM no reconocido
+      y status general `OK` (86 observados).
 
 Aceptación: sobre una fixture del DOM real, la extracción supera el 60% de los
 hijos materializados, y la señal de extracción baja deja de disparar en una

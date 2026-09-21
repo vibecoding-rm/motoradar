@@ -36,8 +36,17 @@ class TestP0PostJsAndFeedExtraction(unittest.TestCase):
         self.assertIn('[role="article"]', POST_JS)
         self.assertIn('feed.children', POST_JS)
         self.assertIn('posts|permalink|multi_permalinks', POST_JS)
+        self.assertIn('commerce', POST_JS)
         self.assertIn('story_fbid', POST_JS)
         self.assertIn('data-ad-preview', POST_JS)
+
+    def test_post_identity_supports_commerce_listing(self):
+        """Verificar que _post_identity extrae el ID estable de URLs de tipo commerce/listing."""
+        from motoradar.sources.facebook import _post_identity
+        post = {"href": "https://www.facebook.com/commerce/listing/2990935431076652/?ref=share_attachment"}
+        pid, conf = _post_identity(post)
+        self.assertEqual(pid, "2990935431076652")
+        self.assertEqual(conf, "estable")
 
 
 class TestP0FixturesOlxAndMercadoLivre(unittest.TestCase):
