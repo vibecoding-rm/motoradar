@@ -570,8 +570,12 @@ def market_dom_broken(health: dict) -> bool:
 
 # El importe PEGADO al simbolo. Antes se tomaba el primer numero de la linea y
 # "CG 125 2008 R$ 900" daba R$1.252.008: la cilindrada y el año pegados.
+# Y al reves: la clase "[\d.,  ]*\d" tragaba el espacio, asi "R$ 800 2015"
+# (precio + año en el mismo renglon) capturaba "800 2015" y card_to_listing
+# devolvia 8.002.015: la moto de R$800 quedaba fuera de presupuesto. La captura
+# ya no cruza un espacio.
 _CARD_PRICE_RE = re.compile(
-    r"(?:R\$|U\$S|US\$|\$U|USD|UYU)\s*([\d.,  ]*\d)", re.IGNORECASE)
+    r"(?:R\$|U\$S|US\$|\$U|USD|UYU)\s*(\d[\d., ]*\d|\d)", re.IGNORECASE)
 _FREE_WORDS = ("gratis", "free", "de graca", "de gracas")
 
 
@@ -582,8 +586,24 @@ def _is_price_line(line: str) -> bool:
 # "Jaguarao, RS", "Rio Branco, Cerro Largo, Uruguay", "Melo". Corta y sin verbo
 # de venta ni importe: lo que Facebook pone en la ultima linea de la tarjeta.
 _UF_RE = re.compile(r",\s*(?:[A-Z]{2}|uruguay|brasil|brazil)\s*$", re.IGNORECASE)
-_SELL_HINT_RE = re.compile(r"\b(?:vendo|vende|troco|permut|passo|moto|cg|biz|"
-                           r"honda|yamaha|suzuki|scooter)\b", re.IGNORECASE)
+# Marcas Y modelos comunes de la frontera: un titulo de 2 palabras como "Titan
+# preta" no debe leerse como ciudad solo por ser corto.
+_SELL_HINT_RE = re.compile(
+    r"\b(?:vendo|vende|troco|permut|passo|moto|scooter|"
+    r"honda|yamaha|suzuki|dafra|shineray|haojue|"
+    r"cg|biz|pop|fan|titan|bros|xre|cb|start|fazer|factor|ybr|xtz|crypton|"
+    r"nmax|fz|lander|tenere|tornado|twister|cbx|dk|gsr|intruder)\b",
+    re.IGNORECASE)
+
+# Ciudades de la frontera, para el caso de UNA sola linea (ver _parse_card):
+# ahi un titulo de moto es mas probable que una ubicacion, asi que solo se
+# acepta como ubicacion una senal fuerte (', RS'/pais o ciudad conocida).
+_KNOWN_LOC = {
+    "jaguarao", "rio branco", "melo", "pelotas", "bage", "acegua",
+    "arroio grande", "yaguaron", "rivera", "santana do livramento",
+    "cerro largo", "treinta y tres", "rio grande", "herval", "candiota",
+    "pedras altas", "pinheiro machado", "hulha negra", "aceguá",
+}
 
 
 def _looks_like_location(line: str) -> bool:
@@ -593,6 +613,16 @@ def _looks_like_location(line: str) -> bool:
         return True
     # Un nombre de ciudad suelto: pocas palabras, sin numeros.
     return len(line.split()) <= 3 and not re.search(r"\d", line)
+
+
+def _is_strong_location(line: str) -> bool:
+    """Senal FUERTE de ubicacion, para lineas unicas: sufijo ', RS'/pais o una
+    ciudad conocida. Evita que "Titan preta" (titulo) se lea como ciudad."""
+    if _SELL_HINT_RE.search(strip_accents(line)):
+        return False
+    if _UF_RE.search(line):
+        return True
+    return strip_accents(line) in _KNOWN_LOC
 
 
 def _first_price(text: str) -> tuple[float | None, str]:
@@ -637,7 +667,10 @@ def _parse_card(text: str) -> tuple[str, str]:
         # Una sola linea que parece ubicacion ES la ubicacion, no el titulo: la
         # tarjeta no trajo titulo. Tomarla como titulo hacia que appraise
         # clasificara "Jaguarao, RS" y el aviso se descartara como desconocido.
-        if _looks_like_location(cuerpo[0]):
+        # Pero con UNA sola linea el default seguro es titulo: un modelo corto
+        # ("Titan preta") no es una ciudad. Solo se descarta como titulo ante
+        # una senal fuerte de ubicacion (', RS'/pais o ciudad conocida).
+        if _is_strong_location(cuerpo[0]):
             return "", cuerpo[0]
         return cuerpo[0][:200], ""
     return (lines[0][:200] if lines else ""), ""

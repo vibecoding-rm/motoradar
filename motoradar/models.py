@@ -15,7 +15,14 @@ def strip_accents(text: str) -> str:
     return "".join(c for c in nfkd if not unicodedata.combining(c)).lower().strip()
 
 
-_PRICE_RE = re.compile(r"(?<!\d)\d+(?:[.,\u00a0 ]\d+)*(?!\d)")
+# Un espacio (o \u00a0) solo separa MILLARES en grupos de 3 digitos ("1 800").
+# Antes "[.,\u00a0 ]\d+" dejaba que "800 2015" (precio + a\u00f1o pegados en el mismo
+# renglon) se uniera en "8002015": una moto de R$800 quedaba fuera de
+# presupuesto y se descartaba en silencio. El "." y "," siguen siendo flexibles
+# porque parse_price ya resuelve millares vs decimal mas abajo.
+_PRICE_RE = re.compile(
+    r"(?<!\d)\d{1,3}(?:[\u00a0 ]\d{3})+(?:[.,]\d{1,2})?(?!\d)"
+    r"|(?<!\d)\d+(?:[.,]\d+)*(?!\d)")
 
 # El feed cronologico trae el post COMPLETO de cada vecino, no solo de quien
 # vende una moto, y eso se persistia entero en SQLite y se exportaba al CSV:

@@ -22,10 +22,13 @@ MAX_AGE = 12 * 3600  # medio dia: las cotizaciones no se mueven tanto
 # Red de seguridad si la API no responde. Editables en config -> fx.rates.
 FALLBACK = {"USD": 1.0, "BRL": 5.15, "UYU": 40.2}
 
-# Como escriben los precios de cada lado del puente.
+# Como escriben los precios de cada lado del puente. Incluye las PALABRAS de
+# moneda, no solo los simbolos: en Rio Branco el precio se escribe "200 dolares"
+# y antes detect_currency lo daba por BRL (mientras parse_price_text si lo leia
+# como USD), o sea dos detectores de moneda que se contradecian.
 SYMBOLS = [
-    (re.compile(r"U\$S|USD|u\$s|US\$", re.IGNORECASE), "USD"),
-    (re.compile(r"R\$|BRL", re.IGNORECASE), "BRL"),
+    (re.compile(r"U\$S|USD|u\$s|US\$|\bd[oó]lar(?:es)?\b", re.IGNORECASE), "USD"),
+    (re.compile(r"R\$|BRL|\breais\b|\breal\b|\bcontos?\b", re.IGNORECASE), "BRL"),
     (re.compile(r"\$U|UYU|\$\s*U\b|(?<![A-Za-z])\$(?![A-Za-z])|\bpesos?\b|\bpezos\b", re.IGNORECASE), "UYU"),
 ]
 
