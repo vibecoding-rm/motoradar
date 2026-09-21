@@ -5,6 +5,7 @@ import contextlib
 import csv
 import json
 import math
+import os
 import shutil
 import sqlite3
 import sys
@@ -462,6 +463,35 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _load_dotenv() -> None:
+    """Carga un `.env` (del directorio actual, o de la raiz del proyecto) a
+    os.environ SIN pisar variables ya definidas: una variable real del entorno
+    siempre gana. Opcional y sin dependencias.
+
+    Se llama solo desde los entry points reales (`console()` / `__main__`), NUNCA
+    desde `main()`: asi el `.env` del desarrollador no se filtra dentro de la
+    suite de tests (que invoca `main()` directo).
+    """
+    for p in (Path.cwd() / ".env",
+              Path(__file__).resolve().parent.parent / ".env"):
+        if not p.is_file():
+            continue
+        try:
+            contenido = p.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for raw in contenido.splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            if not key.isidentifier():
+                continue   # "facebook user" y similares no son nombres validos
+            os.environ.setdefault(key, value.strip().strip('"').strip("'"))
+        return   # el primer .env que exista manda
+
+
 def _configure_stdio() -> None:
     """La consola de Windows usa cp1252 y rompe los acentos portugueses al
     imprimir (los datos estan bien en UTF-8, es solo la salida). Se hace aca,
@@ -627,6 +657,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "collect":
         return run_collect(cfg, args)
     return 0
+
+
+def console() -> int:
+    """Entry point real (`python -m motoradar` y el comando `motoradar`): carga
+    el `.env` y despacha. `main()` queda limpio para los tests."""
+    _load_dotenv()
+    return main()
 
 
 def run_collect(cfg: Config, args: argparse.Namespace) -> int:

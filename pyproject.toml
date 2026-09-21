@@ -25,7 +25,7 @@ dependencies = [
 dev = ["ruff>=0.6", "mypy>=1.11"]
 
 [project.scripts]
-motoradar = "motoradar.cli:main"
+motoradar = "motoradar.cli:console"
 
 [project.urls]
 Repository = "https://github.com/vibecoding-rm/motoradar"

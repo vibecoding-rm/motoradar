@@ -1,8 +1,8 @@
 import sys
 
-# La reconfiguracion de stdout a UTF-8 (para los acentos en la consola de
-# Windows) vive en cli.main(), asi el comando instalado `motoradar` y este
-# `python -m motoradar` se comportan igual.
-from .cli import main
+# `console()` carga el `.env` y reconfigura stdout a UTF-8 antes de despachar,
+# igual que el comando instalado `motoradar`. `main()` (sin carga de .env) queda
+# para los tests.
+from .cli import console
 
-sys.exit(main())
+sys.exit(console())
