@@ -12,6 +12,14 @@ grupos.json
 config.local.yaml
 config.*.yaml
 !config.example.yaml
+secreto.txt
+Secreto.txt
+*secret*
+*.token
+*.key
+*.pem
+*.pfx
+
 *.csv
 !tests/**/*.csv
 # Evidencia cruda de auditorias: trazas y volcados reales. Los informes .md
