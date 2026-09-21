@@ -13,7 +13,9 @@ import unittest
 
 from motoradar.models import parse_price
 from motoradar.money import detect_currency
-from motoradar.sources.facebook import _first_price, _parse_card, card_to_listing
+from motoradar.sources.facebook import (
+    _first_price, _parse_card, card_to_listing, _post_identity, _stable_id_from_href,
+)
 
 
 class TestBug1PrecioConNumeroPegado(unittest.TestCase):
@@ -90,6 +92,48 @@ class TestBug3TituloCortoNoEsUbicacion(unittest.TestCase):
         title, loc = _parse_card("R$ 900\nMelo")
         self.assertEqual(title, "")
         self.assertEqual(loc, "Melo")
+
+
+class TestIdentidadDePostMasFormasDeUrl(unittest.TestCase):
+    """_post_identity ahora recupera el id estable de las mismas formas de URL
+    que POST_JS (multi_permalinks, post_id, story.php, videos), en vez de caer
+    al hash del texto (que cambia con cada edicion y re-alerta el mismo aviso)."""
+
+    def test_recupera_id_de_multi_permalinks(self):
+        href = "https://www.facebook.com/groups/123/permalink/?multi_permalinks=900700600500"
+        self.assertEqual(_stable_id_from_href(href), "900700600500")
+        pid, conf = _post_identity({"href": href})
+        self.assertEqual(pid, "900700600500")
+        self.assertEqual(conf, "estable")
+
+    def test_recupera_id_de_post_id_y_story_php(self):
+        self.assertEqual(
+            _stable_id_from_href("https://m.facebook.com/story.php?story_fbid=778899001122&id=5"),
+            "778899001122")
+        self.assertEqual(
+            _stable_id_from_href("https://www.facebook.com/groups/9/?post_id=112233445566"),
+            "112233445566")
+
+    def test_id_explicito_gana_sobre_href(self):
+        pid, conf = _post_identity({"id": "555111", "href": "https://x/posts/999999/"})
+        self.assertEqual(pid, "555111")
+        self.assertEqual(conf, "estable")
+
+    def test_control_commerce_listing_sigue_andando(self):
+        pid, conf = _post_identity(
+            {"href": "https://www.facebook.com/commerce/listing/2990935431076652/?ref=x"})
+        self.assertEqual(pid, "2990935431076652")
+        self.assertEqual(conf, "estable")
+
+    def test_fallback_sin_link_es_estable_por_texto_y_distinto_entre_posts(self):
+        # Sin id ni href: hash del texto. Mismo texto -> misma identidad; texto
+        # distinto -> identidad distinta. NO se normaliza (ver comentario del fix).
+        a, ca = _post_identity({"text": "Vendo CG 125 andando"})
+        b, _ = _post_identity({"text": "Vendo CG 125 andando"})
+        c, _ = _post_identity({"text": "Vendo Biz 110 nova"})
+        self.assertEqual(a, b)
+        self.assertNotEqual(a, c)
+        self.assertIn("inestable", ca)
 
 
 if __name__ == "__main__":

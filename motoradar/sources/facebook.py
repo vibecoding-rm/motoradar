@@ -253,16 +253,37 @@ def _validate_navigation(page) -> None:
         raise SessionExpired("La sesion de Facebook expiro o requiere verificacion. Corre: python -m motoradar login")
 
 
+# Todas las formas conocidas en que un post lleva su id numerico estable. Antes
+# _post_identity solo miraba /posts|/permalink|/commerce/listing y story_fbid|fbid,
+# menos que el propio POST_JS: un permalink de grupo ("?multi_permalinks=<id>",
+# "?post_id=<id>", "/story.php?story_fbid=<id>", "/videos/<id>") no daba id
+# estable y el post caia al hash del texto, que cambia con cada edicion y
+# dispara una re-alerta del mismo aviso. Con esto Python queda a la par de POST_JS.
+_POST_ID_PATTERNS = (
+    re.compile(r"/(?:posts|permalink|commerce/listing|videos|photos)/(?:[^/?]+/)?(\d{5,})"),
+    re.compile(r"[?&](?:story_fbid|fbid|multi_permalinks|post_id)=(\d{5,})"),
+)
+
+
+def _stable_id_from_href(href: str) -> str:
+    for patron in _POST_ID_PATTERNS:
+        match = patron.search(href or "")
+        if match:
+            return match.group(1)
+    return ""
+
+
 def _post_identity(post: dict) -> tuple[str, str]:
     stable = str(post.get("id") or "").strip()
     if not stable:
-        href = str(post.get("href") or "")
-        match = re.search(r"/(?:posts|permalink|commerce/listing)/(?:[^/?]+/)?(\d{5,})", href)
-        if not match:
-            match = re.search(r"[?&](?:story_fbid|fbid)=(\d{5,})", href)
-        stable = match.group(1) if match else ""
+        stable = _stable_id_from_href(str(post.get("href") or ""))
     if stable:
         return stable, "estable"
+    # Fallback DELIBERADAMENTE sin normalizar: hash del texto crudo. Normalizarlo
+    # (minusculas, sin acentos) evitaria re-alertas al reeditar el formato, pero
+    # haria colisionar dos avisos distintos con el mismo texto -> una moto barata
+    # perdida, el peor error del sistema. Entre una re-alerta y una moto perdida,
+    # se elige la re-alerta.
     fallback = hashlib.sha256(str(post.get("text") or "").encode()).hexdigest()[:20]
     return fallback, "inestable: hash del texto; una edicion cambia la identidad"
 
