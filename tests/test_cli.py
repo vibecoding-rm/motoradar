@@ -9,14 +9,13 @@ from __future__ import annotations
 import csv
 import io
 import json
-import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from motoradar.cli import build_parser, cmd_collect, collect, main, watch_loop
+from motoradar.cli import build_parser, collect, main, watch_loop
 from motoradar.config import Config
 from motoradar.models import Listing
 from motoradar.notify import DeliveryResult
@@ -50,8 +49,7 @@ class MockSource(BaseSource):
         if self._should_fail:
             from motoradar.sources.base import SourceError
             raise SourceError("Error de red simulado")
-        for item in self._listings:
-            yield item
+        yield from self._listings
 
 
 class TestCliCollectSubparser(unittest.TestCase):

@@ -8,7 +8,6 @@ podian estar ciegos semanas sin que la racha de silencio arrancara.
 """
 from __future__ import annotations
 
-import csv
 import io
 import tempfile
 import unittest

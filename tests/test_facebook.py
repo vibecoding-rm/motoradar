@@ -14,24 +14,36 @@ import io
 import json
 import tempfile
 import unittest
-from contextlib import redirect_stdout, redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
+from datetime import UTC
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from motoradar.cli import (check_health, collect, cycle_config,
-                           observation_origins, run_once, watch_loop)
+from motoradar.cli import (
+    check_health,
+    collect,
+    cycle_config,
+    observation_origins,
+    run_once,
+    watch_loop,
+)
 from motoradar.config import Config, FilterConfig
+from motoradar.enrich import extract_description
 from motoradar.filters import matches
 from motoradar.models import Listing
 from motoradar.money import FX
 from motoradar.notify import DeliveryResult
 from motoradar.pipeline import prepare
-from motoradar.enrich import extract_description
 from motoradar.sources.base import BaseSource, SessionExpired, SourceError
-from motoradar.sources.facebook import (FacebookSource, _group_region,
-                                        _validate_navigation, card_to_listing,
-                                        feed_dom_broken, market_dom_broken,
-                                        post_to_listing)
+from motoradar.sources.facebook import (
+    FacebookSource,
+    _group_region,
+    _validate_navigation,
+    card_to_listing,
+    feed_dom_broken,
+    market_dom_broken,
+    post_to_listing,
+)
 from motoradar.store import Store
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
@@ -970,11 +982,12 @@ class TestFacebookDateParsing(unittest.TestCase):
 
     def test_absolute_date_expressions_spanish_and_portuguese(self):
         """Fechas absolutas en espanol y portugues calculadas con timestamp de referencia fijo."""
-        from datetime import datetime, timezone
+        from datetime import datetime
+
         from motoradar.sources.facebook import parse_post_age
 
         # Referencia fija: 2026-09-19 12:00:00 UTC
-        ref_now = datetime(2026, 9, 19, 12, 0, 0, tzinfo=timezone.utc)
+        ref_now = datetime(2026, 9, 19, 12, 0, 0, tzinfo=UTC)
 
         # Portugues: "12 de setembro" (hace 7 dias y 12 horas = 648000s)
         age_pt = parse_post_age("12 de setembro", now=ref_now)
@@ -987,7 +1000,7 @@ class TestFacebookDateParsing(unittest.TestCase):
         self.assertEqual(age_es, 648000.0)
 
         # Con ano explicito: "15 de enero de 2024"
-        expected_seconds = (ref_now - datetime(2024, 1, 15, 0, 0, 0, tzinfo=timezone.utc)).total_seconds()
+        expected_seconds = (ref_now - datetime(2024, 1, 15, 0, 0, 0, tzinfo=UTC)).total_seconds()
         self.assertEqual(parse_post_age("15 de enero de 2024", now=ref_now), expected_seconds)
         self.assertEqual(parse_post_age("15 de janeiro de 2024", now=ref_now), expected_seconds)
 

@@ -7,26 +7,29 @@ import os
 import sqlite3
 import tempfile
 import unittest
-from contextlib import redirect_stdout, redirect_stderr
-from dataclasses import replace
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import requests
 
-from motoradar.appraise import appraise
 from motoradar.cli import collect, main, run_deals, run_once
 from motoradar.config import Config, FilterConfig
-from motoradar.filters import matches
 from motoradar.enrich import enrich_facebook
+from motoradar.filters import matches
 from motoradar.locking import exclusive
-from motoradar.models import Listing, parse_price, parse_price_text
 from motoradar.market import Economics, Reference, evaluate
+from motoradar.models import Listing, parse_price, parse_price_text
 from motoradar.money import FX
 from motoradar.notify import DeliveryResult, flush_pending, send_telegram, to_csv
 from motoradar.pipeline import prepare
 from motoradar.sources.base import BaseSource, SourceError
-from motoradar.sources.facebook import FacebookSource, _close_runtime, _post_identity, _validate_navigation
+from motoradar.sources.facebook import (
+    FacebookSource,
+    _close_runtime,
+    _post_identity,
+    _validate_navigation,
+)
 from motoradar.sources.olx import OlxSource
 from motoradar.store import SCHEMA_VERSION, Store
 
@@ -390,7 +393,8 @@ class Persistence(unittest.TestCase):
         self.store.conn.execute("UPDATE listings SET notified=1")
         self.store.conn.execute("PRAGMA user_version=0")
         self.store.conn.commit()
-        self.store.close(); self.store = Store(self.path)
+        self.store.close()
+        self.store = Store(self.path)
         a.raw["alert_status"] = "confirmed"
         self.assertFalse(self.store.upsert(a, "chat", True))
         self.assertFalse(self.store.pending("chat"))
@@ -434,10 +438,8 @@ class Persistence(unittest.TestCase):
         self.assertEqual(hashlib.sha256(path.read_bytes()).digest(), before)
 
     def test_lock_prevents_overlapping_runs(self):
-        with exclusive(self.path):
-            with self.assertRaises(RuntimeError):
-                with exclusive(self.path):
-                    pass
+        with exclusive(self.path), self.assertRaises(RuntimeError), exclusive(self.path):
+            pass
 
 
 class Telegram(unittest.TestCase):
@@ -491,7 +493,8 @@ class EndToEnd(unittest.TestCase):
             store = Store(cfg.db_path)
             self.assertEqual(store.conn.execute("SELECT notified FROM listings WHERE uid='olx:1'").fetchone()[0], 0)
             store.conn.execute("UPDATE deliveries SET retry_at=0")
-            store.conn.commit(); store.close()
+            store.conn.commit()
+            store.close()
             with patch("motoradar.cli.collect", return_value=([], {"olx": "ERROR: offline"})), patch("motoradar.notify.send_telegram", return_value=DeliveryResult(True)) as sender, redirect_stdout(io.StringIO()):
                 with self.assertRaises(SourceError):
                     run_once(cfg, enrich_details=False)
@@ -561,9 +564,11 @@ class EndToEnd(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "config.yaml"
             p.write_text('telegram:\n  token: "123:secreto"\n', encoding="utf-8")
-            with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "", "TELEGRAM_CHAT_ID": ""}):
-                with self.assertRaises(ValueError) as caso:
-                    Config.load(p)
+            with (
+                patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "", "TELEGRAM_CHAT_ID": ""}),
+                self.assertRaises(ValueError) as caso,
+            ):
+                Config.load(p)
             mensaje = str(caso.exception)
             self.assertIn("TELEGRAM_BOT_TOKEN", mensaje)
             self.assertNotIn("123:secreto", mensaje, "el error no puede repetir el token")
@@ -613,7 +618,8 @@ class EndToEnd(unittest.TestCase):
                 ids = {"a": {1: ["1"], 2: ["2"]}, "b": {1: ["1"], 2: ["3"]}}
                 for identifier in ids[query].get(page, []):
                     yield moto(identifier)
-        cfg=Config();cfg.filters.queries=["a", "b"]
+        cfg = Config()
+        cfg.filters.queries = ["a", "b"]
         self.assertEqual([l.external_id for l in FakeOlx().fetch(cfg, {"categories": ["motos"], "pages": 2})], ["1", "2", "3"])
 
     def test_olx_all_pages_failed_is_not_a_successful_empty_search(self):

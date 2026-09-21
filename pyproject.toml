@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "motoradar"
+description = "Radar transfronterizo de motos de oportunidad (Jaguarao-Rio Branco) con alertas por Telegram."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+authors = [{ name = "Maikel Reyes Morales" }]
+keywords = ["scraping", "telegram", "marketplace", "cli", "frontera"]
+dynamic = ["version"]
+dependencies = [
+    "requests>=2.31",
+    "PyYAML>=6.0",
+    # OLX filtra por fingerprint TLS: sin esto es 403 casi seguro.
+    "curl_cffi>=0.7",
+    # Facebook: patchright es el fork stealth de playwright.
+    "patchright>=1.47",
+]
+
+[project.optional-dependencies]
+# Solo para desarrollo/CI: no hacen falta para correr el radar.
+dev = ["ruff>=0.6", "mypy>=1.11"]
+
+[project.scripts]
+motoradar = "motoradar.cli:main"
+
+[project.urls]
+Repository = "https://github.com/vibecoding-rm/motoradar"
+
+[tool.setuptools.packages.find]
+include = ["motoradar*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "motoradar.__version__" }
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+# Arranque pragmatico: errores reales (F, B, SIM) + orden de imports (I) y
+# modernizacion (UP). E501 (largo de linea) queda fuera: hay comentarios-ensayo
+# largos a proposito que documentan decisiones de producto.
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+ignore = [
+    "E501",   # largo de linea: comentarios-ensayo largos a proposito
+    "E741",   # `l` como nombre: se usa a proposito en todo el pipeline (114 casos)
+    "UP031",  # los 2 casos son templates JS (FEED/MARKET_HEALTH_JS): el % NO es printf
+    "SIM105", # try/except: pass deliberado en codigo de navegador/stdio (mas legible aqui)
+    "SIM905", # "palabra1 palabra2 ...".split() es mas legible que un list literal
+              # gigante para las listas de ~100 palabras, y ademas lleva comentarios.
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["motoradar"]
+
+[tool.mypy]
+# Arranque gradual: tipa lo que ya esta anotado sin exigir anotar todo el
+# codigo de golpe. Se puede endurecer despues (disallow_untyped_defs, etc.).
+python_version = "3.12"
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+check_untyped_defs = false

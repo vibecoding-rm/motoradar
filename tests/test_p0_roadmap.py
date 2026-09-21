@@ -17,7 +17,7 @@ from unittest.mock import Mock, patch
 from motoradar.config import Config, FilterConfig
 from motoradar.models import Listing
 from motoradar.money import FX
-from motoradar.notify import DeliveryResult, flush_pending, send_telegram
+from motoradar.notify import flush_pending
 from motoradar.pipeline import prepare
 from motoradar.sources.mercadolivre import MercadoLivreSource
 from motoradar.sources.olx import OlxSource

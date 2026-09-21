@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import os
 import math
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -119,7 +119,7 @@ class Config:
     monitoring: dict = field(default_factory=dict)
 
     @classmethod
-    def load(cls, path: str | Path = DEFAULT_PATH) -> "Config":
+    def load(cls, path: str | Path = DEFAULT_PATH) -> Config:
         p = Path(path)
         if not p.exists():
             raise SystemExit(

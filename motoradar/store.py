@@ -4,7 +4,7 @@ import json
 import sqlite3
 import time
 from dataclasses import asdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from .models import Listing, now_iso
@@ -265,9 +265,7 @@ class Store:
         """
         row = self.conn.execute(
             "SELECT notified_at FROM health_notices WHERE key=?", (key,)).fetchone()
-        if row and time.time() - float(row["notified_at"]) < cooldown_s:
-            return False
-        return True
+        return not (row and time.time() - float(row["notified_at"]) < cooldown_s)
 
     def mark_health_notice(self, key: str) -> None:
         with self.conn:
@@ -293,7 +291,7 @@ class Store:
         vacio = {"observations": 0, "listings": 0, "runs": 0}
         if days <= 0:
             return vacio
-        limite = (datetime.now(timezone.utc) - timedelta(days=days)
+        limite = (datetime.now(UTC) - timedelta(days=days)
                   ).isoformat(timespec="seconds")
         with self.conn:
             borrado = {

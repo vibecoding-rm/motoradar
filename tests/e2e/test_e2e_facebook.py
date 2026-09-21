@@ -11,21 +11,20 @@ from __future__ import annotations
 
 import copy
 import io
-import os
 import tempfile
 import unittest
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from motoradar.cli import REGISTRY, collect, run_once
+from motoradar.cli import collect, run_once
 from motoradar.config import Config, FilterConfig
 from motoradar.filters import matches
 from motoradar.locking import exclusive
 from motoradar.models import Listing
 from motoradar.money import FX
-from motoradar.pipeline import SearchResult, prepare
-from motoradar.sources.base import BaseSource, SourceOutcome
+from motoradar.pipeline import prepare
+from motoradar.sources.base import BaseSource
 from motoradar.sources.facebook import card_to_listing, post_to_listing
 from motoradar.store import Store
 

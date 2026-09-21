@@ -17,13 +17,18 @@ from __future__ import annotations
 import json
 import re
 import time
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-from .models import Listing, parse_price_text, scrub_personal
 # El umbral de señuelo vive en appraise: una sola definicion. Duplicado en dos
 # modulos, subir uno y no el otro dejaba avisos "confirmados" que
 # fix_bait_prices no habia intentado corregir nunca.
-from .appraise import BAIT_PRICE as BAIT_MAX, is_bait_price, is_decoy_sequence
+from .appraise import BAIT_PRICE as BAIT_MAX
+from .appraise import is_bait_price, is_decoy_sequence
+from .models import Listing, parse_price_text, scrub_personal
+
+if TYPE_CHECKING:  # solo para tipar `fx: FX`; el import real vive dentro de la funcion
+    from .money import FX
 
 # --- OLX ---------------------------------------------------------------------
 LD_JSON_RE = re.compile(
@@ -171,8 +176,13 @@ def enrich_facebook(listings: list[Listing], pause: float = 2.5,
                     max_items: int | None = None,
                     timeout_ms: int = 45000) -> int:
     """Una sola sesion de navegador para todas las candidatas de Facebook."""
-    from .sources.facebook import (PROFILE_DIR, _close_runtime, _launch,
-                                   _settle, _validate_navigation)
+    from .sources.facebook import (
+        PROFILE_DIR,
+        _close_runtime,
+        _launch,
+        _settle,
+        _validate_navigation,
+    )
 
     pending = [l for l in listings
                if _is_facebook_item(l.url) and not l.raw.get("description")]

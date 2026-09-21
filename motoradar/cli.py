@@ -1,29 +1,27 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import csv
+import json
+import math
 import shutil
+import sqlite3
 import sys
 import time
-import math
-import sqlite3
-import json
-import csv
-import contextlib
 from contextlib import nullcontext as _no_lock
-from pathlib import Path
-
 from dataclasses import replace
+from pathlib import Path
 
 from .config import Config
 from .filters import matches
+from .locking import exclusive
 from .models import Listing, now_iso
 from .money import FX
-from .notify import to_console, to_csv, flush_pending, send_health
+from .notify import flush_pending, send_health, to_console, to_csv
 from .pipeline import normalize, prepare
-from .locking import exclusive
 from .sources import REGISTRY
-from .sources.base import (SessionExpired, SourceError, SourceOutcome,
-                           format_outcome, outcome_status)
+from .sources.base import SessionExpired, SourceError, SourceOutcome, format_outcome, outcome_status
 
 
 def _to_base(listing: Listing, fx: FX, base: str) -> None:
@@ -464,7 +462,18 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _configure_stdio() -> None:
+    """La consola de Windows usa cp1252 y rompe los acentos portugueses al
+    imprimir (los datos estan bien en UTF-8, es solo la salida). Se hace aca,
+    en main(), para que el comando instalado `motoradar` (entry point) se
+    comporte igual que `python -m motoradar`."""
+    for stream in (sys.stdout, sys.stderr):
+        with contextlib.suppress(AttributeError, ValueError):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main(argv: list[str] | None = None) -> int:
+    _configure_stdio()
     parser = build_parser()
     args = parser.parse_args(argv)
     if getattr(args, "only", None) and set(args.only) - REGISTRY.keys():

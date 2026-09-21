@@ -36,7 +36,7 @@ class Economics:
                 "parts": self.repair_parts}.get(condition, self.repair_project)
 
     @classmethod
-    def from_config(cls, data: dict) -> "Economics":
+    def from_config(cls, data: dict) -> Economics:
         known = {f for f in cls.__dataclass_fields__}
         return cls(**{k: v for k, v in (data or {}).items() if k in known})
 

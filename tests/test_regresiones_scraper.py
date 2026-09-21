@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Regresiones de tres bugs del scraper de Facebook, encontrados en una
 revision senior. Cada clase fija UN bug con su caso reproductor y un par de
 controles para que el arreglo no rompa lo que ya funcionaba.
@@ -14,7 +13,11 @@ import unittest
 from motoradar.models import parse_price
 from motoradar.money import detect_currency
 from motoradar.sources.facebook import (
-    _first_price, _parse_card, card_to_listing, _post_identity, _stable_id_from_href,
+    _first_price,
+    _parse_card,
+    _post_identity,
+    _stable_id_from_href,
+    card_to_listing,
 )
 
 

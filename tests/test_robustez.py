@@ -10,7 +10,7 @@ import csv
 import io
 import tempfile
 import unittest
-from contextlib import redirect_stdout, redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -20,8 +20,7 @@ from motoradar.enrich import fix_bait_prices
 from motoradar.models import Listing
 from motoradar.notify import DeliveryResult, flush_pending, send_telegram, to_csv
 from motoradar.sources.base import SessionExpired
-from motoradar.sources.facebook import (FacebookSource, _grow_feed,
-                                        _session_blocked, card_to_listing)
+from motoradar.sources.facebook import FacebookSource, _grow_feed, _session_blocked, card_to_listing
 from motoradar.store import MAX_DELIVERY_ATTEMPTS, Store
 
 

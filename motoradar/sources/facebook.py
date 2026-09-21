@@ -17,17 +17,16 @@ frescura y recall; la clasificacion la hace appraise.py, que para eso esta.
 """
 from __future__ import annotations
 
-import time
 import hashlib
 import re
-from datetime import datetime, timedelta, timezone
+import time
+from collections.abc import Iterable
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Iterable
 from urllib.parse import urlencode
 
 from ..config import Config
-from ..models import (Listing, parse_price, parse_price_text,
-                      scrub_personal, strip_accents)
+from ..models import Listing, parse_price, parse_price_text, scrub_personal, strip_accents
 from ..money import detect_currency
 from .base import BaseSource, SessionExpired, SourceError
 
@@ -358,7 +357,7 @@ def parse_post_age(date_text: str, now: datetime | None = None) -> float | None:
         if not texto:
             return None
         if now is None:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
 
         # Marcadores de inmediatez
         if re.search(r"\b(hoy|hoje|ahora|agora|hace\s+un\s+momento|hace\s+poco|agora\s+mesmo)\b", texto):
@@ -391,7 +390,7 @@ def parse_post_age(date_text: str, now: datetime | None = None) -> float | None:
                 hour = int(hr) if hr else 0
                 minute = int(mn) if mn else 0
                 try:
-                    dt = datetime(year, month, int(day), hour, minute, tzinfo=timezone.utc)
+                    dt = datetime(year, month, int(day), hour, minute, tzinfo=UTC)
                     if not yr and dt > now:
                         dt = dt.replace(year=year - 1)
                     return max(0.0, (now - dt).total_seconds())
@@ -772,7 +771,7 @@ def post_to_listing(group_id: str, post: dict, region: str,
     edad = parse_post_age(date_text)
     posted_at = ""
     if edad is not None:
-        posted_at = (datetime.now(timezone.utc)
+        posted_at = (datetime.now(UTC)
                      - timedelta(seconds=edad)).isoformat(timespec="seconds")
 
     # BUG-FB-GEO-02: Inspeccionar texto del post por pistas de ubicacion.

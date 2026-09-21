@@ -12,33 +12,29 @@ Covers:
 from __future__ import annotations
 
 import io
-from pathlib import Path
 import sys
 import unittest
 from contextlib import redirect_stdout
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 # Ensure project root is in sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from motoradar.appraise import appraise
 from motoradar.config import Config, FilterConfig
 from motoradar.enrich import (
     _is_facebook_item,
     detail_price_text,
     enrich_facebook,
     extract_description,
-    fix_bait_prices,
 )
-from motoradar.filters import detect_location_cue, is_non_target_location, matches
-from motoradar.models import Listing, parse_price_text, _NON_TOTAL_PRICE, strip_accents, _NOT_PRICE
+from motoradar.filters import is_non_target_location, matches
+from motoradar.models import Listing, parse_price_text
 from motoradar.money import FX
-from motoradar.pipeline import SearchResult, normalize, prepare
-from motoradar.sources.base import SessionExpired, SourceError
+from motoradar.pipeline import prepare
 from motoradar.sources.facebook import (
     FacebookSource,
-    _looks_like_location,
     _parse_card,
     card_to_listing,
     feed_dom_broken,
@@ -334,7 +330,7 @@ class TestAdversarialBorderLocationFiltering(unittest.TestCase):
             ("Piratini voy a Jaguarao", "piratini"),
             ("Acegua envio a Rio Branco", "acegua"),
         ]
-        for text, matched_city in deceptives:
+        for text, _matched_city in deceptives:
             with self.subTest(text=text):
                 l = Listing(
                     source="facebook",
@@ -451,7 +447,7 @@ class TestAdversarialDateParsingAndLocale(unittest.TestCase):
     """Adversarial stress testing of parse_post_age across Spanish and Portuguese expressions."""
 
     def setUp(self):
-        self.ref_now = datetime(2026, 9, 19, 12, 0, 0, tzinfo=timezone.utc)
+        self.ref_now = datetime(2026, 9, 19, 12, 0, 0, tzinfo=UTC)
 
     def test_spanish_relative_date_variations_and_abbreviations(self):
         """All Spanish relative formats (hours, minutes, days, weeks, months, years) parse accurately."""
@@ -552,7 +548,7 @@ class TestAdversarialDateParsingAndLocale(unittest.TestCase):
         for m_num, (es, pt) in enumerate(zip(months_es, months_pt, strict=True), 1):
             if m_num <= 9:  # Past months in 2026 (ref is Sept 19, 2026)
                 day = 10
-                expected = (self.ref_now - datetime(2026, m_num, day, tzinfo=timezone.utc)).total_seconds()
+                expected = (self.ref_now - datetime(2026, m_num, day, tzinfo=UTC)).total_seconds()
                 self.assertEqual(parse_post_age(f"{day} de {es}", now=self.ref_now), expected)
                 self.assertEqual(parse_post_age(f"{day} de {pt}", now=self.ref_now), expected)
 
@@ -580,7 +576,7 @@ class TestAdversarialDateParsingAndLocale(unittest.TestCase):
         """Date without year later in the calendar wraps around to previous year."""
         # Today is Sept 19, 2026. "25 de diciembre" (no year) -> Dec 25, 2025.
         got = parse_post_age("25 de diciembre", now=self.ref_now)
-        expected = (self.ref_now - datetime(2025, 12, 25, tzinfo=timezone.utc)).total_seconds()
+        expected = (self.ref_now - datetime(2025, 12, 25, tzinfo=UTC)).total_seconds()
         self.assertEqual(got, expected)
 
     def test_date_parsing_with_noise_punctuation_and_whitespace(self):
@@ -590,8 +586,8 @@ class TestAdversarialDateParsingAndLocale(unittest.TestCase):
             ("hace 2 h · ", 7200.0),
             ("Publicado hace 3 d.", 259200.0),
             ("Publicada hace 15 min", 900.0),
-            ("12 de septiembre a las 14:30", (self.ref_now - datetime(2026, 9, 12, 14, 30, tzinfo=timezone.utc)).total_seconds()),
-            ("12 de setembro as 14:30", (self.ref_now - datetime(2026, 9, 12, 14, 30, tzinfo=timezone.utc)).total_seconds()),
+            ("12 de septiembre a las 14:30", (self.ref_now - datetime(2026, 9, 12, 14, 30, tzinfo=UTC)).total_seconds()),
+            ("12 de setembro as 14:30", (self.ref_now - datetime(2026, 9, 12, 14, 30, tzinfo=UTC)).total_seconds()),
         ]
         for text, expected in cases:
             with self.subTest(text=text):

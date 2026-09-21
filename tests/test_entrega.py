@@ -136,7 +136,7 @@ class ColasSeparadas(unittest.TestCase):
         self.store.upsert_many(moto(price=500), ["socio", "yo"], True)
         rows = self.store.conn.execute(
             "SELECT destination, attempts, retry_at, reason, payload FROM deliveries ORDER BY destination").fetchall()
-        for old, row in zip(before, rows):
+        for old, row in zip(before, rows, strict=False):
             self.assertEqual(tuple(row)[:3], tuple(old))
             self.assertEqual(row["reason"], "bajada de precio")
             self.assertEqual(json.loads(row["payload"])["price"], 500)

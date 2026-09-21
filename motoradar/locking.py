@@ -1,7 +1,7 @@
 """Only one collector/sender may own a database at a time."""
+import os
 from contextlib import contextmanager
 from pathlib import Path
-import os
 
 
 @contextmanager

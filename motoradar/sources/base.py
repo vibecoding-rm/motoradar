@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
-from typing import Iterable, Protocol
+from typing import Protocol
 
 from ..config import Config
 from ..models import Listing

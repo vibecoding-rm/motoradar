@@ -7,7 +7,7 @@ client_credentials desde una app creada en developers.mercadolivre.com.br
 from __future__ import annotations
 
 import os
-from typing import Iterable
+from collections.abc import Iterable
 
 import requests
 
