@@ -5,7 +5,7 @@
 **Radar inteligente y monitor transfronterizo de motos de oportunidad ($\le$ R$ 1.000)**  
 *Detección continua en tiempo real, clasificación semántica contextual y alertas automáticas.*
 
-[![CI - Radar Regressions](https://github.com/motoradar/motoradar/actions/workflows/tests.yml/badge.svg)](https://github.com/motoradar/motoradar/actions/workflows/tests.yml)
+[![CI - Radar Regressions](https://github.com/vibecoding-rm/motoradar/actions/workflows/tests.yml/badge.svg)](https://github.com/vibecoding-rm/motoradar/actions/workflows/tests.yml)
 [![Python Version](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://img.shields.io/badge/tests-339%20passing%20(100%25%20hermetic)-brightgreen.svg)](#-verificación-y-qa)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
