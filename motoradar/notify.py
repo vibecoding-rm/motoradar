@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import quote
 
 import requests
 
@@ -113,50 +115,83 @@ class DeliveryResult:
     permanent: bool = False
 
 
+def _place(location: str) -> str:
+    """Lugar buscable para el boton de Maps. Quita el sufijo '(grupo 123)' y
+    descarta ubicaciones que no son un lugar real ('grupo 999')."""
+    p = re.sub(r"\s*\(grupo[^)]*\)", "", location or "").strip()
+    return "" if not p or p.lower().startswith("grupo") else p
+
+
+def _link_caveat(l: Listing) -> str:
+    """El boton 'Abrir aviso' no siempre cae en el post exacto: si el link se
+    reconstruyo o va al grupo, el mensaje lo avisa en cristiano."""
+    conf = str(l.raw.get("url_confidence", ""))
+    if conf.startswith("sin permalink"):
+        return "⚠️ el botón abre el grupo; buscá el aviso ahí"
+    if conf.startswith("permalink reconstruido"):
+        return "🔗 link reconstruido: puede no caer justo en el aviso"
+    return ""
+
+
+def _alert_buttons(l: Listing) -> list[list[dict]]:
+    """Botones de URL (no necesitan que el bot escuche): 1 toque para abrir."""
+    fila: list[dict] = []
+    if l.url:
+        fila.append({"text": "🔗 Abrir aviso", "url": l.url})
+    lugar = _place(l.location)
+    if lugar:
+        fila.append({"text": "🗺️ Ver zona",
+                     "url": "https://www.google.com/maps/search/?api=1&query=" + quote(lugar)})
+    return [fila] if fila else []
+
+
+def _alert_text(l: Listing) -> str:
+    marca = "❓" if is_unconfirmed(l) else "✅"
+    lineas = [f"{marca} <b>{status_label(l)}</b>"]
+    # Bajada de precio, bien arriba y en grande: es lo mas vendedor del aviso.
+    prev = l.raw.get("previous_price")
+    if prev is not None and not is_unconfirmed(l) and l.price is not None:
+        sym = Listing.SYMBOL.get(l.currency, l.currency)
+        lineas.append(f"📉 <b>bajó {sym} {Listing._format_amount(prev)} → "
+                      f"{sym} {Listing._format_amount(l.price)}</b>")
+    lineas.append(f"🏍️ <b>{_esc(l.title[:120])}</b>")
+    lineas.append(f"💰 {_esc(price_line(l))}")
+    # Una sola linea compacta: zona · estado mecanico. Sin jerga ('via facebook',
+    # url/location_confidence): eso al comprador no le suma.
+    zona = _esc(l.location[:60]) or "sin ubicacion"
+    lineas.append(f"📍 {zona} · 🔧 {_esc(l.raw.get('condition', 'por verificar'))}")
+    if l.raw.get("doc_risk"):
+        lineas.append("📄 sin papeles (no excluye)")
+    nota_detalle = detail_note(l)
+    if nota_detalle:
+        lineas.append(f"🔎 {_esc(nota_detalle)}")
+    caveat = _link_caveat(l)
+    if caveat:
+        lineas.append(_esc(caveat))
+    return "\n".join(lineas)
+
+
 def send_telegram(l: Listing, token: str, chat_id: str, reason: str = "") -> DeliveryResult:
     if not (token and chat_id):
         return DeliveryResult(False, "Telegram sin configurar")
-    status = status_label(l)
-    papers = "sin papeles (no excluye)" if l.raw.get("doc_risk") else "papeles por verificar"
-    # Un enlace reconstruido o al grupo entero no es lo mismo que el permalink:
-    # quien abre el mensaje tiene que saber si va a caer justo en el aviso.
-    link_note = l.raw.get("url_confidence", "")
-    link_note = f"\n{_esc(link_note)}" if link_note and link_note != "permalink del post" else ""
-    # Dos alertas distintas de un vistazo: una compra con precio confirmado y
-    # un aviso que hay que ir a mirar. Las dos llegan; no se confunden.
-    marca = "❓" if is_unconfirmed(l) else "✅"
-    nota_detalle = detail_note(l)
-    lineas = [
-        f"{marca} <b>{status}</b> · {_esc(reason)}",
-        f"🏍️ <b>{_esc(l.title[:120])}</b>",
-        f"💰 {_esc(price_line(l))}",
-    ]
-    if nota_detalle:
-        lineas.append(f"🔎 {_esc(nota_detalle)}")
-    lineas += [
-        f"📍 {_esc(l.location[:60]) or 'sin ubicacion'}",
-        f"🔧 {_esc(l.raw.get('condition', 'por verificar'))} · {papers}",
-    ]
-    if l.raw.get("location_confidence"):
-        lineas.append(_esc(l.raw["location_confidence"]))
-    lineas.append(f"🔗 {_esc(l.url)}")
-    if link_note:
-        lineas.append(_esc(link_note))
-    lineas.append(f"<i>via {_esc(l.source)}</i>")
-    text = "\n".join(lineas)
+    text = _alert_text(l)
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+        # Solo se previsualiza el enlace del aviso. Con la vista previa libre,
+        # una URL escrita por un desconocido en el texto del post generaba una
+        # tarjeta rica dentro de una alerta que parece del radar: el efecto
+        # exacto que busca una estafa.
+        "link_preview_options": {"url": l.url},
+    }
+    botones = _alert_buttons(l)
+    if botones:
+        payload["reply_markup"] = {"inline_keyboard": botones}
     try:
         r = requests.post(
             TELEGRAM_API.format(token=token),
-            json={
-                "chat_id": chat_id,
-                "text": text,
-                "parse_mode": "HTML",
-                # Solo se previsualiza el enlace del aviso. Con la vista
-                # previa libre, una URL escrita por un desconocido en el texto
-                # del post generaba una tarjeta rica dentro de una alerta que
-                # parece del radar: el efecto exacto que busca una estafa.
-                "link_preview_options": {"url": l.url},
-            },
+            json=payload,
             timeout=20,
         )
         body = r.json()
