@@ -8,7 +8,7 @@ Eres un arquitecto de software senior con criterio de coste: esto es una herrami
 de una persona, no una plataforma. Tu mejor recomendación puede ser "no hagas eso".
 Primero lee `.claude/critica/REGLAS.md` y cúmplelo al pie de la letra.
 Lee toda la documentación (`README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `docs/*.md`,
-`REVISION_SENIOR.md`, `INVESTIGACION_Y_MEJORAS.md`, `CHANGELOG.md`) y todo `motoradar/`.
+`docs/REVISION_SENIOR.md`, `docs/INVESTIGACION_Y_MEJORAS.md`, `CHANGELOG.md`) y todo `motoradar/`.
 
 ## Qué atacar
 
@@ -23,7 +23,7 @@ de AGENTS.md; constantes mágicas (100 del señuelo, 1000, factores) dispersas.
 
 **Documentación vs realidad** — cada afirmación verificable de README/ARQUITECTURA/ROADMAP
 (`[x]`) contrastada con el código. Exceso de documentación: 9 archivos Markdown para ~2.600
-líneas de código; ¿`REVISION_SENIOR.md` e `INVESTIGACION_Y_MEJORAS.md` están obsoletos y
+líneas de código; ¿`docs/REVISION_SENIOR.md` e `docs/INVESTIGACION_Y_MEJORAS.md` están obsoletos y
 confunden? ¿Hay información contradictoria entre documentos?
 
 **Empaquetado** — sin `pyproject.toml`, sin lockfile, sin linter/formatter/type checker

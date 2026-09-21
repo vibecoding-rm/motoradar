@@ -73,7 +73,7 @@ flowchart TD
 ### 1. Instalación y Entorno Virtual
 ```powershell
 # Clonar el repositorio
-git clone https://github.com/TU_USUARIO/motoradar.git
+git clone https://github.com/vibecoding-rm/motoradar.git
 cd motoradar
 
 # Crear entorno virtual e instalar dependencias

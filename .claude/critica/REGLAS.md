@@ -10,7 +10,7 @@ Todos los agentes `critico-*` (en .claude/agents/) deben leer y cumplir este arc
   ("añadir más tests", "mejorar el manejo de errores") sin ubicación ni caso concreto.
 - Prohibido inventar problemas para parecer exhaustivo. Si un área está sólida, dilo
   en una línea y sigue. Un informe corto y verdadero vale más que uno largo e inflado.
-- No confíes en README, CHANGELOG, ROADMAP ni REVISION_SENIOR.md: verifica en el código.
+- No confíes en README, CHANGELOG, ROADMAP ni docs/REVISION_SENIOR.md: verifica en el código.
   Si la documentación afirma algo que el código no cumple, eso es un hallazgo.
 - Una casilla `[x]` en ROADMAP no demuestra nada. Compruébalo.
 
